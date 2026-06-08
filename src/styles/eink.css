@@ -1,0 +1,1463 @@
+/*
+ * Copyright (C) 2024-2025 EDUmind - Los Mundos Edufis
+ * Author: Luis Vilela Acuña
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*
+ * ══════════════════════════════════════════════════════════════════════════════
+ * E-INK STYLE SYSTEM v2.0
+ * Sistema CSS para simular pantallas de tinta electrónica
+ * Reduce luz azul | Mejora lectura prolongada
+ * 
+ * EDUmind Project | 2025
+ * ══════════════════════════════════════════════════════════════════════════════
+ * 
+ * USO RÁPIDO:
+ * 1. Enlaza este CSS en tu <head>
+ * 2. Añade class="eink" al <html> o al contenedor principal
+ * 3. Opcional: añade class="eink-night" o "eink-dark" para otros modos
+ * 
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   VARIABLES CSS - Personaliza aquí los colores y fuentes
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+    /* PALETA E-INK AUTÉNTICA */
+    --eink-paper: #ded9d0;
+    /* Fondo principal - papel e-ink */
+    --eink-paper-light: #ebe6dc;
+    /* Fondo claro (tarjetas, inputs) */
+    --eink-paper-dark: #d1cbc0;
+    /* Fondo oscuro (código, hover) */
+
+    --eink-ink: #242320;
+    /* Texto principal - tinta */
+    --eink-ink-soft: #3c3934;
+    /* Texto secundario */
+    --eink-ink-light: #676158;
+    /* Texto terciario/muted */
+
+    /* ESCALA DE GRISES */
+    --eink-gray-dark: #4a4744;
+    --eink-gray-mid: #7a7670;
+    --eink-gray-light: #aaa49a;
+    --eink-gray-pale: #cbc5ba;
+
+    /* TIPOGRAFÍA */
+    --eink-font-serif: 'Literata', 'Georgia', 'Times New Roman', serif;
+    --eink-font-sans: 'Atkinson Hyperlegible', 'Verdana', 'Arial', sans-serif;
+    --eink-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+    --eink-font-size: 17px;
+    --eink-line-height: 1.65;
+
+    /* ESPACIADO */
+    --eink-spacing-xs: 0.25rem;
+    --eink-spacing-sm: 0.5rem;
+    --eink-spacing-md: 1rem;
+    --eink-spacing-lg: 1.5rem;
+    --eink-spacing-xl: 2rem;
+
+    /* BORDES */
+    --eink-border-radius: 8px;
+    --eink-border-color: var(--eink-gray-light);
+
+    /* TRANSICIONES */
+    --eink-transition: 0.15s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   FILTRO GLOBAL E-INK
+   Aplica a <html> o al contenedor raíz de tu app
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.eink {
+    filter:
+        sepia(12%)
+        /* Calidez - reduce azules */
+        saturate(80%)
+        /* Desaturación sutil */
+        brightness(98%)
+        /* Ligeramente más oscuro */
+        contrast(92%);
+    /* Contraste reducido como e-ink real */
+
+    background-color: var(--eink-paper);
+    min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   TEXTURA DE PAPEL
+   Aplica al <body> o contenedor principal
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.eink body,
+.eink-body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--eink-paper);
+    color: var(--eink-ink);
+    font-family: var(--eink-font-sans);
+    font-size: var(--eink-font-size);
+    line-height: var(--eink-line-height);
+
+    /* Textura granulada */
+    background-image:
+            url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.045'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse at 50% 0%, #eee9df 0%, var(--eink-paper) 58%, #d3cdc2 100%);
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Capa de textura adicional (píxeles e-ink + viñeteado) */
+.eink body::before,
+.eink-body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 10000;
+    background-image:
+        radial-gradient(circle at center, rgba(37, 36, 34, 0.018) 0.5px, transparent 0.5px);
+    background-size: 4px 4px;
+    box-shadow: inset 0 0 96px rgba(37, 36, 34, 0.055);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MODO NOCHE - Más cálido, menos luz azul
+   Añade class="eink-night" al <html>
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.eink.eink-night,
+.eink-night.eink {
+    filter:
+        sepia(30%) saturate(65%) brightness(88%) contrast(85%);
+}
+
+.eink.eink-night body,
+.eink-night .eink-body {
+    --eink-paper: #cac3b8;
+    --eink-paper-light: #d2cbc0;
+    --eink-paper-dark: #bfb8ac;
+    background-color: var(--eink-paper);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MODO OSCURO - Inversión e-ink (Marrón cálido, NO verde)
+   Añade class="eink-dark" al <html>
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tokens del modo oscuro — definidos aquí, usados en todo el bloque ── */
+html.eink-dark,
+html.eink-dark body,
+html.eink.eink-dark,
+.eink.eink-dark,
+.eink-dark.eink {
+    --eink-paper:        #2a2826;
+    --eink-paper-light:  #353230;
+    --eink-paper-dark:   #1f1d1c;
+    --eink-ink:          #d4cfc7;
+    --eink-ink-soft:     #c0bbb2;
+    --eink-ink-light:    #a8a49c;
+    --eink-gray-dark:    #b0aba3;
+    --eink-gray-mid:     #8a857d;
+    --eink-gray-light:   #5a5650;
+    --eink-gray-pale:    #3d3a38;
+    --eink-border-color: #5a5650;
+}
+
+html.eink.eink-dark,
+html.eink-dark.eink,
+.eink.eink-dark,
+.eink-dark.eink {
+    filter: sepia(15%) saturate(70%) brightness(92%) contrast(88%);
+    background-color: var(--eink-paper) !important;
+}
+
+.eink.eink-dark body,
+.eink-dark .eink-body,
+html.eink-dark body {
+    background-color: var(--eink-paper) !important;
+    color: var(--eink-ink) !important;
+    background-image:
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+.eink.eink-dark body::before,
+.eink-dark .eink-body::before,
+html.eink-dark body::before {
+    background-image:
+        radial-gradient(circle at center, rgba(212, 207, 199, 0.02) 0.5px, transparent 0.5px);
+    box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.2);
+}
+
+html.eink-dark,
+html.eink-dark body,
+html.eink-dark #root {
+    background-color: var(--eink-paper) !important;
+}
+
+html.eink-dark .glass-panel,
+html.eink-dark .glass-card,
+html.eink-dark header {
+    background-color: var(--eink-paper-light) !important;
+    border-color: var(--eink-border-color) !important;
+}
+
+html.eink-dark h1,
+html.eink-dark h2,
+html.eink-dark h3,
+html.eink-dark h4,
+html.eink-dark h5,
+html.eink-dark h6,
+html.eink-dark p,
+html.eink-dark span,
+html.eink-dark div,
+html.eink-dark button,
+html.eink-dark a,
+html.eink-dark label {
+    color: var(--eink-ink) !important;
+}
+
+html.eink-dark input,
+html.eink-dark textarea,
+html.eink-dark select {
+    background-color: var(--eink-paper) !important;
+    color: var(--eink-ink) !important;
+    border-color: var(--eink-border-color) !important;
+}
+
+html.eink-dark input::placeholder,
+html.eink-dark textarea::placeholder {
+    color: var(--eink-gray-mid) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   UTILIDADES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Texto */
+.eink-text-muted {
+    color: var(--eink-ink-light);
+}
+
+.eink-text-center {
+    text-align: center;
+}
+
+.eink-text-left {
+    text-align: left;
+}
+
+.eink-text-right {
+    text-align: right;
+}
+
+.eink-text-justify {
+    text-align: justify;
+}
+
+.eink-text-small {
+    font-size: 0.9rem;
+}
+
+.eink-text-large {
+    font-size: 1.1rem;
+}
+
+.eink-text-sans {
+    font-family: var(--eink-font-sans);
+}
+
+.eink-text-serif {
+    font-family: var(--eink-font-serif);
+}
+
+.eink-text-mono {
+    font-family: var(--eink-font-mono);
+}
+
+/* Espaciado */
+.eink-mt-0 {
+    margin-top: 0;
+}
+
+.eink-mt-sm {
+    margin-top: var(--eink-spacing-sm);
+}
+
+.eink-mt-md {
+    margin-top: var(--eink-spacing-md);
+}
+
+.eink-mt-lg {
+    margin-top: var(--eink-spacing-lg);
+}
+
+.eink-mt-xl {
+    margin-top: var(--eink-spacing-xl);
+}
+
+.eink-mb-0 {
+    margin-bottom: 0;
+}
+
+.eink-mb-sm {
+    margin-bottom: var(--eink-spacing-sm);
+}
+
+.eink-mb-md {
+    margin-bottom: var(--eink-spacing-md);
+}
+
+.eink-mb-lg {
+    margin-bottom: var(--eink-spacing-lg);
+}
+
+.eink-mb-xl {
+    margin-bottom: var(--eink-spacing-xl);
+}
+
+.eink-p-0 {
+    padding: 0;
+}
+
+.eink-p-sm {
+    padding: var(--eink-spacing-sm);
+}
+
+.eink-p-md {
+    padding: var(--eink-spacing-md);
+}
+
+.eink-p-lg {
+    padding: var(--eink-spacing-lg);
+}
+
+.eink-p-xl {
+    padding: var(--eink-spacing-xl);
+}
+
+/* Display */
+.eink-hidden {
+    display: none;
+}
+
+.eink-block {
+    display: block;
+}
+
+.eink-inline {
+    display: inline;
+}
+
+.eink-inline-block {
+    display: inline-block;
+}
+
+.eink-flex {
+    display: flex;
+}
+
+.eink-grid {
+    display: grid;
+}
+
+/* Flex */
+.eink-flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.eink-flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.eink-flex-wrap {
+    flex-wrap: wrap;
+}
+
+.eink-gap-sm {
+    gap: var(--eink-spacing-sm);
+}
+
+.eink-gap-md {
+    gap: var(--eink-spacing-md);
+}
+
+.eink-gap-lg {
+    gap: var(--eink-spacing-lg);
+}
+
+/* Grid */
+.eink-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--eink-spacing-md);
+}
+
+.eink-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--eink-spacing-md);
+}
+
+/* Bordes */
+.eink-border {
+    border: 1px solid var(--eink-border-color);
+}
+
+.eink-border-top {
+    border-top: 1px solid var(--eink-border-color);
+}
+
+.eink-border-bottom {
+    border-bottom: 1px solid var(--eink-border-color);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    :root {
+        --eink-font-size: 16px;
+    }
+
+    .eink h1,
+    .eink-h1 {
+        font-size: 1.6rem;
+    }
+
+    .eink h2,
+    .eink-h2 {
+        font-size: 1.3rem;
+    }
+
+    .eink-container {
+        padding: var(--eink-spacing-md);
+    }
+
+    .eink-nav {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --eink-font-size: 15px;
+    }
+
+    .eink-btn {
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ACCESIBILIDAD
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .eink *,
+    .eink *::before,
+    .eink *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+.eink :focus-visible {
+    outline: 3px solid var(--eink-gray-mid);
+    outline-offset: 3px;
+}
+
+.eink-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PRINT
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@media print {
+    .eink {
+        filter: none;
+    }
+
+    .eink body::before {
+        display: none;
+    }
+
+    .eink body {
+        background: white;
+        color: black;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MAPEO DE CLASES EXISTENTES A ESTILOS E-INK
+   Para compatibilidad con los componentes de Pasos V2
+
+   Nota: los colores de texto, borde y superficie se cubren por el sistema
+   de tokens en el bloque .eink { } al final del archivo. Solo quedan aquí
+   los overrides que los tokens NO pueden resolver:
+   - glass-panel / glass-card (backdrop-filter, box-shadow, hover)
+   - Gradientes (bg-gradient-to-*, from-*, to-*)
+   - Elementos HTML sin clases Tailwind (input, select, textarea, h1-h6)
+   - Colores estáticos no tokenizados (indigo-*, amber-*, etc.)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* glass-panel / glass-card: ajuste de sombra y backdrop */
+.eink .glass-panel,
+.eink .glass-card {
+    box-shadow: 1px 2px 4px rgba(37, 36, 34, 0.06) !important;
+    backdrop-filter: none !important;
+}
+
+.eink .glass-panel:hover,
+.eink .glass-card:hover {
+    transform: none !important;
+}
+
+/* Botones: fondo de papel para elementos sin clase de color */
+.eink button,
+.eink [role="button"],
+.eink a[class*="btn"] {
+    background-color: var(--eink-paper-light) !important;
+    color: var(--eink-ink) !important;
+    border-color: var(--eink-border-color) !important;
+}
+
+.eink button:hover,
+.eink [role="button"]:hover {
+    background-color: var(--eink-gray-pale) !important;
+}
+
+/* Gradientes: el sistema de tokens no puede anular propiedades de gradiente */
+.eink [class*="bg-gradient"],
+.eink [class*="from-"],
+.eink [class*="to-"] {
+    background: var(--eink-paper-light) !important;
+    background-image: none !important;
+}
+
+/* Inputs: usan estilos del navegador, no heredad tokens Tailwind */
+.eink input,
+.eink select,
+.eink textarea {
+    background-color: var(--eink-paper-light) !important;
+    color: var(--eink-ink) !important;
+    border-color: var(--eink-border-color) !important;
+}
+
+.eink input:focus,
+.eink select:focus,
+.eink textarea:focus {
+    border-color: var(--eink-gray-dark) !important;
+    outline: none !important;
+}
+
+.eink input::placeholder,
+.eink textarea::placeholder {
+    color: var(--eink-gray-mid) !important;
+}
+
+/* Headings HTML sin clase de color explícita */
+.eink h1,
+.eink h2,
+.eink h3,
+.eink h4,
+.eink h5,
+.eink h6 {
+    color: var(--eink-ink) !important;
+    font-family: var(--eink-font-sans) !important;
+}
+
+/* Iconos SVG: hereda color del padre */
+.eink svg {
+    color: inherit;
+}
+
+/* Selector de modo E-Ink - Versión texto simplificado */
+.eink-mode-selector {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 10001;
+    display: flex;
+    gap: 0;
+    background: var(--eink-paper-light);
+    padding: 0.25rem;
+    border: 1px solid var(--eink-gray-mid);
+    font-family: var(--eink-font-sans);
+    font-size: 0.8rem;
+    border-radius: var(--eink-border-radius);
+    box-shadow: 2px 3px 8px rgba(37, 36, 34, 0.12);
+}
+
+.eink-mode-selector button {
+    padding: 0.4rem 0.7rem !important;
+    font-size: 0.8rem !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--eink-ink-light) !important;
+}
+
+.eink-mode-selector button:hover {
+    background: var(--eink-gray-pale) !important;
+    color: var(--eink-ink) !important;
+}
+
+.eink-mode-selector button.active,
+.eink-mode-selector button:not(.eink-btn--outline) {
+    background: var(--eink-ink) !important;
+    color: var(--eink-paper) !important;
+}
+
+.eink-mode-selector .separator {
+    color: var(--eink-gray-light);
+    padding: 0 0.1rem;
+    display: flex;
+    align-items: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   REFINAMIENTOS ESPECÍFICOS PARA PASOS V2
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* 1. BARRA SUPERIOR - Header con fondo e-ink */
+.eink header,
+.eink .glass-panel[class*="sticky"] {
+    background-color: var(--eink-paper-dark) !important;
+    border-bottom: 1px solid var(--eink-gray-light) !important;
+    box-shadow: 0 1px 3px rgba(37, 36, 34, 0.06) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   HEADER - Eliminar TODOS los marcos redundantes
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* RESET: Eliminar todos los bordes interiores del header */
+.eink header *,
+.eink header *::before,
+.eink header *::after {
+    box-shadow: none !important;
+}
+
+/* Botones y links de acción en header - SIN bordes internos */
+.eink header button,
+.eink header a {
+    background-color: transparent !important;
+    border: none !important;
+    color: var(--eink-ink) !important;
+    font-family: var(--eink-font-sans) !important;
+    font-weight: 500 !important;
+}
+
+.eink header button:hover,
+.eink header a:hover {
+    background-color: var(--eink-gray-pale) !important;
+}
+
+/* Botones con forma de cápsula (rounded-full) - UN solo borde fino */
+.eink header [class*="rounded-full"]:not([class*="w-10"]) {
+    border: 1px solid var(--eink-gray-light) !important;
+    border-radius: 999px !important;
+    background-color: transparent !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.eink header [class*="rounded-full"]:not([class*="w-10"]):hover {
+    background-color: var(--eink-gray-pale) !important;
+    border-color: var(--eink-gray-mid) !important;
+}
+
+/* Eliminar bordes de CONTENEDORES envolventes (el problema de doble marco) */
+.eink header>div,
+.eink header>div>div,
+.eink header .relative,
+.eink header .group {
+    border: none !important;
+    background: transparent !important;
+}
+
+/* Avatar de usuario - Solo tiene borde el círculo exterior */
+.eink header [class*="w-10"][class*="h-10"][class*="rounded-full"] {
+    border: 1px solid var(--eink-gray-light) !important;
+    background-color: var(--eink-gray-pale) !important;
+}
+
+/* Quitar el borde del contenedor del selector de tema */
+.eink header [class*="px-4"][class*="py-2"] {
+    border: none !important;
+}
+
+/* Solo añadir borde al selector como un todo */
+.eink header [class*="flex"][class*="items-center"][class*="gap-2"]:has(select) {
+    border: 1px solid var(--eink-gray-light) !important;
+    border-radius: 999px !important;
+    padding: 0.375rem 0.75rem !important;
+}
+
+/* Logo/Icono de la app - Fix del contenedor desvirtuado */
+.eink header [class*="rounded-xl"][class*="bg-white"] {
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.eink header [class*="w-10"][class*="h-10"][class*="rounded-xl"] {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+/* Icono del logo - monocromático */
+.eink header svg[class*="text-mint"],
+.eink header [class*="text-mint"] svg {
+    color: var(--eink-ink) !important;
+    filter: none !important;
+}
+
+/* Título "Pasos" - Sin gradiente, texto sólido */
+.eink header h1 {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: var(--eink-ink) !important;
+    color: var(--eink-ink) !important;
+    font-family: var(--eink-font-sans) !important;
+}
+
+/* Separador del breadcrumb */
+.eink header [class*="text-mint"]:not(svg):not(h1) {
+    color: var(--eink-gray-mid) !important;
+}
+
+/* Avatar usuario - sin colores */
+.eink header [class*="rounded-full"][class*="bg-lme-primary"] {
+    background-color: var(--eink-gray-pale) !important;
+    border-color: var(--eink-gray-light) !important;
+}
+
+.eink header [class*="rounded-full"] svg {
+    color: var(--eink-ink-light) !important;
+}
+
+/* Select del tema - Sin borde doble */
+.eink header select {
+    background-color: transparent !important;
+    border: none !important;
+    color: var(--eink-ink) !important;
+    padding: 0.25rem 0.5rem !important;
+}
+
+/* Contenedor del select */
+.eink header [class*="rounded-full"][class*="items-center"] {
+    border: 1px solid var(--eink-gray-light) !important;
+    padding: 0.35rem 0.75rem !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   BARRA DE BÚSQUEDA Y TOOLBAR - Fix lupa y campo
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Campo de búsqueda principal */
+.eink main input[type="text"],
+.eink main input[type="search"],
+.eink [class*="Toolbar"] input {
+    background-color: var(--eink-paper-light) !important;
+    border: 1px solid var(--eink-gray-light) !important;
+    border-radius: var(--eink-border-radius) !important;
+    color: var(--eink-ink) !important;
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem !important;
+    /* Espacio para icono */
+}
+
+.eink main input:focus,
+.eink [class*="Toolbar"] input:focus {
+    border-color: var(--eink-gray-dark) !important;
+    outline: none !important;
+}
+
+/* Icono de lupa - Posicionado correctamente */
+.eink [class*="absolute"] svg[class*="Search"],
+.eink [class*="absolute"] [class*="lucide-search"] {
+    color: var(--eink-gray-mid) !important;
+    left: 0.75rem !important;
+}
+
+/* Contenedor del campo de búsqueda */
+.eink [class*="relative"]:has(input) svg {
+    color: var(--eink-gray-mid) !important;
+}
+
+/* Botón Filtrar */
+.eink [class*="Toolbar"] button,
+.eink main [class*="rounded"][class*="border"]:has(svg) {
+    background-color: transparent !important;
+    border: 1px solid var(--eink-gray-light) !important;
+    color: var(--eink-ink-light) !important;
+}
+
+.eink main [class*="rounded"][class*="border"]:hover {
+    background-color: var(--eink-gray-pale) !important;
+}
+
+/* Badge de conteo de tareas */
+.eink [class*="tareas"],
+.eink [class*="count"] {
+    background-color: var(--eink-gray-pale) !important;
+    color: var(--eink-ink) !important;
+    border: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ETIQUETAS DE COLOR - Estilo e-ink Kaleido (desaturado)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Colores de etiquetas muy desaturados para e-ink */
+.eink [style*="border-left"],
+.eink [style*="background-color: #"],
+.eink [style*="background-color: rgb"],
+.eink [class*="color-"],
+.eink [class*="etiqueta"] {
+    filter: saturate(35%) brightness(95%) !important;
+}
+
+/* Color picker en modales - También desaturado */
+.eink [class*="fixed"] button[style*="background-color"] {
+    filter: saturate(40%) brightness(90%) !important;
+    opacity: 0.9;
+}
+
+.eink [class*="fixed"] button[style*="background-color"]:hover {
+    filter: saturate(50%) brightness(95%) !important;
+    opacity: 1;
+}
+
+/* 2. SELECTOR DE TEMA - Colores e-ink */
+.eink select,
+.eink .theme-switcher select {
+    background-color: var(--eink-paper-light) !important;
+    color: var(--eink-ink) !important;
+    border: 1px solid var(--eink-gray-light) !important;
+}
+
+.eink select option {
+    background-color: var(--eink-paper-light) !important;
+    color: var(--eink-ink) !important;
+}
+
+/* 3. TARJETAS DE TAREAS - Más profundidad con sombra */
+.eink .glass-card,
+.eink [class*="bg-lme-surface"][class*="rounded"] {
+    background-color: var(--eink-paper-light) !important;
+    border: 1px solid var(--eink-gray-light) !important;
+    box-shadow: 2px 3px 6px rgba(37, 36, 34, 0.08) !important;
+    border-radius: var(--eink-border-radius) !important;
+}
+
+.eink .glass-card:hover {
+    border-color: var(--eink-gray-mid) !important;
+    transform: none !important;
+}
+
+/* Imágenes/iconos dentro de tarjetas - grayscale */
+.eink .glass-card img,
+.eink [class*="bg-lme-surface"] img {
+    filter: grayscale(100%) contrast(90%) !important;
+}
+
+/* 4. ZONAS "DROP HERE" - Borde sutil dashed */
+.eink [class*="border-dashed"] {
+    border: 1px dashed var(--eink-gray-light) !important;
+    background-color: transparent !important;
+    color: var(--eink-ink-light) !important;
+}
+
+.eink [class*="border-dashed"]:hover {
+    border-color: var(--eink-gray-mid) !important;
+    background-color: rgba(200, 196, 187, 0.2) !important;
+}
+
+/* Zona drop vacía - más sutil */
+.eink [class*="min-h-"][class*="border-dashed"][class*="italic"] {
+    background-color: transparent !important;
+    border-color: var(--eink-gray-pale) !important;
+    color: var(--eink-gray-mid) !important;
+}
+
+/* 5. BOTONES "+ Añadir Tarea" - estilo block outline */
+.eink button[class*="border-dashed"][class*="w-full"] {
+    border: 1px dashed var(--eink-gray-light) !important;
+    background-color: transparent !important;
+    color: var(--eink-ink-light) !important;
+    border-radius: var(--eink-border-radius) !important;
+    font-family: var(--eink-font-sans) !important;
+    padding: 0.6rem 1rem !important;
+}
+
+.eink button[class*="border-dashed"][class*="w-full"]:hover {
+    background-color: var(--eink-gray-pale) !important;
+    border-color: var(--eink-gray-mid) !important;
+    color: var(--eink-ink) !important;
+}
+
+/* 6. BOTÓN NUEVA COLUMNA */
+.eink button[class*="w-80"][class*="border-dashed"] {
+    border: 1px dashed var(--eink-gray-light) !important;
+    background-color: transparent !important;
+    color: var(--eink-ink-light) !important;
+    border-radius: var(--eink-border-radius) !important;
+}
+
+.eink button[class*="w-80"][class*="border-dashed"]:hover {
+    background-color: rgba(200, 196, 187, 0.3) !important;
+    border-color: var(--eink-gray-mid) !important;
+    color: var(--eink-ink) !important;
+}
+
+/* 7. DROPDOWNS/MENÚS - Estilo e-ink */
+.eink [class*="absolute"][class*="bg-lme-surface-alt"] {
+    background-color: var(--eink-paper-light) !important;
+    border: 1px solid var(--eink-gray-light) !important;
+    box-shadow: 2px 4px 12px rgba(37, 36, 34, 0.12) !important;
+    border-radius: var(--eink-border-radius) !important;
+}
+
+.eink [class*="absolute"] button {
+    color: var(--eink-ink) !important;
+}
+
+.eink [class*="absolute"] button:hover {
+    background-color: var(--eink-gray-pale) !important;
+}
+
+/* Items activos en menús */
+.eink [class*="bg-mint\\/10"],
+.eink [class*="text-mint"] {
+    background-color: var(--eink-gray-pale) !important;
+    color: var(--eink-ink) !important;
+}
+
+/* 8. ICONOS DE ACCIONES - Color neutro */
+.eink [class*="hover:text-sky"],
+.eink [class*="hover:text-lme-danger"],
+.eink [class*="text-sub"] {
+    color: var(--eink-ink-light) !important;
+}
+
+.eink [class*="hover:text-sky"]:hover {
+    color: var(--eink-ink) !important;
+}
+
+.eink [class*="hover:text-lme-danger"]:hover {
+    color: var(--eink-gray-dark) !important;
+}
+
+/* 9. BADGES/ETIQUETAS - Estilo neutro */
+.eink [class*="rounded-full"][class*="bg-mint"],
+.eink [class*="rounded-full"][class*="bg-sky"] {
+    background-color: var(--eink-gray-pale) !important;
+    color: var(--eink-ink) !important;
+}
+
+/* 10. TÍTULO DE COLUMNAS */
+.eink h2[class*="font-semibold"] {
+    font-family: var(--eink-font-sans) !important;
+    color: var(--eink-ink) !important;
+    font-weight: 600 !important;
+}
+
+/* 11. COLOR INDICATOR EN TAREAS - Mantener visible */
+.eink [style*="border-left"] {
+    filter: grayscale(50%) !important;
+}
+
+/* 12. GRADIENTES EN TÍTULOS - Convertir a color sólido */
+.eink [class*="bg-gradient-to-r"],
+.eink [class*="bg-clip-text"] {
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    -webkit-text-fill-color: var(--eink-ink) !important;
+    color: var(--eink-ink) !important;
+}
+
+/* 13. ANIMATIONS/TRANSITIONS - Más suaves */
+.eink * {
+    transition-duration: 0.1s !important;
+}
+
+/* Excepción para dragndrop */
+.eink [style*="transform"] {
+    transition-duration: 0s !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   14. MODALES Y DIÁLOGOS - Estilo E-Ink completo
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Fondo del modal (overlay) */
+.eink [class*="fixed"][class*="inset-0"][class*="bg-black"] {
+    background-color: rgba(37, 36, 34, 0.7) !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+/* Contenedor del modal */
+.eink [class*="fixed"][class*="z-50"]>[class*="relative"][class*="bg-lme-surface"],
+.eink [class*="bg-lme-surface-alt"][class*="rounded"],
+.eink .modal-content,
+.eink [class*="shadow-2xl"][class*="rounded"] {
+    background-color: var(--eink-paper-light) !important;
+    color: var(--eink-ink) !important;
+    border: 1px solid var(--eink-border-color) !important;
+    box-shadow: 4px 6px 20px rgba(37, 36, 34, 0.15) !important;
+    border-radius: var(--eink-border-radius) !important;
+}
+
+/* Header del modal */
+.eink [class*="border-b"][class*="bg-black\\/20"],
+.eink [class*="p-6"][class*="border-b"] {
+    background-color: var(--eink-paper-dark) !important;
+    border-color: var(--eink-border-color) !important;
+}
+
+/* Footer del modal */
+.eink [class*="border-t"][class*="bg-black\\/20"],
+.eink [class*="p-6"][class*="border-t"] {
+    background-color: var(--eink-paper-dark) !important;
+    border-color: var(--eink-border-color) !important;
+}
+
+/* Título del modal */
+.eink [class*="text-2xl"][class*="font-bold"],
+.eink [class*="text-white"][class*="font-bold"] {
+    color: var(--eink-ink) !important;
+    font-family: var(--eink-font-sans) !important;
+}
+
+/* Inputs dentro de modales - SIN bordes azules */
+.eink [class*="fixed"] input,
+.eink [class*="fixed"] textarea,
+.eink [class*="fixed"] select {
+    background-color: var(--eink-paper) !important;
+    color: var(--eink-ink) !important;
+    border: 1px solid var(--eink-gray-light) !important;
+    border-radius: var(--eink-border-radius) !important;
+    font-family: var(--eink-font-sans) !important;
+}
+
+.eink [class*="fixed"] input:focus,
+.eink [class*="fixed"] textarea:focus,
+.eink [class*="fixed"] select:focus {
+    border-color: var(--eink-gray-dark) !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.eink [class*="fixed"] input::placeholder,
+.eink [class*="fixed"] textarea::placeholder {
+    color: var(--eink-gray-mid) !important;
+}
+
+/* Botón primario en modales (Guardar/Aceptar) - SIN colores */
+.eink [class*="fixed"] button[class*="bg-mint"],
+.eink [class*="fixed"] button[class*="bg-sky"],
+.eink [class*="fixed"] button[class*="bg-lme-primary"],
+.eink button.eink-btn:not(.eink-btn--outline) {
+    background-color: var(--eink-ink) !important;
+    color: var(--eink-paper) !important;
+    border: 2px solid var(--eink-ink) !important;
+    box-shadow: none !important;
+    border-radius: var(--eink-border-radius) !important;
+    font-family: var(--eink-font-sans) !important;
+    font-weight: 500 !important;
+}
+
+.eink [class*="fixed"] button[class*="bg-mint"]:hover,
+.eink [class*="fixed"] button[class*="bg-sky"]:hover,
+.eink [class*="fixed"] button[class*="bg-lme-primary"]:hover {
+    background-color: var(--eink-ink-soft) !important;
+    border-color: var(--eink-ink-soft) !important;
+}
+
+/* Botón secundario en modales (Cancelar) - Outline */
+.eink [class*="fixed"] button[class*="text-sub"]:not([class*="bg-"]),
+.eink [class*="fixed"] button[class*="hover:text-white"]:not([class*="bg-"]),
+.eink button.eink-btn--outline {
+    background-color: transparent !important;
+    color: var(--eink-ink) !important;
+    border: 1px solid var(--eink-gray-light) !important;
+    border-radius: var(--eink-border-radius) !important;
+}
+
+.eink [class*="fixed"] button[class*="text-sub"]:hover,
+.eink button.eink-btn--outline:hover {
+    background-color: var(--eink-gray-pale) !important;
+    border-color: var(--eink-gray-mid) !important;
+}
+
+/* Botón de búsqueda - SIN color azul */
+.eink [class*="fixed"] button[class*="bg-sky"] {
+    background-color: var(--eink-ink) !important;
+    color: var(--eink-paper) !important;
+}
+
+/* Botón eliminar - Neutro en lugar de rojo */
+.eink [class*="fixed"] button[class*="text-lme-danger"],
+.eink [class*="fixed"] [class*="hover:text-lme-danger"] {
+    color: var(--eink-gray-dark) !important;
+}
+
+.eink [class*="fixed"] button[class*="text-lme-danger"]:hover {
+    color: var(--eink-ink) !important;
+}
+
+/* Secciones negras dentro de modales */
+.eink [class*="fixed"] [class*="bg-black\\/20"],
+.eink [class*="fixed"] [class*="bg-lme-surface"] {
+    background-color: var(--eink-paper-dark) !important;
+}
+
+/* Separadores en modales */
+.eink [class*="fixed"] hr,
+.eink [class*="fixed"] [class*="border-line"] {
+    border-color: var(--eink-border-color) !important;
+}
+
+/* Grid de pictogramas */
+.eink [class*="fixed"] [class*="grid"][class*="gap-2"] button {
+    background-color: var(--eink-paper-light) !important;
+    border: 1px solid var(--eink-gray-light) !important;
+}
+
+.eink [class*="fixed"] [class*="grid"][class*="gap-2"] button:hover {
+    border-color: var(--eink-gray-mid) !important;
+}
+
+/* Picker de colores - Mantener pero con borde */
+.eink [class*="fixed"] button[class*="rounded-full"][style*="background-color"] {
+    border: 2px solid var(--eink-gray-light) !important;
+    filter: grayscale(30%) !important;
+}
+
+.eink [class*="fixed"] button[class*="rounded-full"][style*="background-color"][class*="border-white"] {
+    border-color: var(--eink-ink) !important;
+}
+
+/* Botones dashed en modal */
+.eink [class*="fixed"] button[class*="border-dashed"],
+.eink [class*="fixed"] label[class*="border-dashed"] {
+    border: 1px dashed var(--eink-gray-light) !important;
+    background-color: transparent !important;
+    color: var(--eink-ink-light) !important;
+}
+
+.eink [class*="fixed"] button[class*="border-dashed"]:hover,
+.eink [class*="fixed"] label[class*="border-dashed"]:hover {
+    border-color: var(--eink-gray-mid) !important;
+    background-color: var(--eink-gray-pale) !important;
+    color: var(--eink-ink) !important;
+}
+
+/* Enlaces en modales */
+.eink [class*="fixed"] a[class*="text-sky"] {
+    color: var(--eink-ink) !important;
+    text-decoration: underline !important;
+}
+
+/* Imágenes en modal - Grayscale */
+.eink [class*="fixed"] img {
+    filter: grayscale(100%) contrast(90%) brightness(105%) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   15. MODALES EN MODO OSCURO - Ajustes específicos
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+html.eink-dark [class*="fixed"][class*="z-50"]>[class*="relative"],
+html.eink-dark [class*="bg-lme-surface-alt"][class*="rounded"] {
+    background-color: #353230 !important;
+    color: #d4cfc7 !important;
+    border-color: #5a5650 !important;
+}
+
+html.eink-dark [class*="fixed"] [class*="bg-black\\/20"],
+html.eink-dark [class*="fixed"] [class*="bg-lme-surface"] {
+    background-color: #2a2826 !important;
+}
+
+html.eink-dark [class*="fixed"] input,
+html.eink-dark [class*="fixed"] textarea,
+html.eink-dark [class*="fixed"] select {
+    background-color: #2a2826 !important;
+    color: #d4cfc7 !important;
+    border-color: #5a5650 !important;
+}
+
+html.eink-dark [class*="fixed"] input::placeholder,
+html.eink-dark [class*="fixed"] textarea::placeholder {
+    color: #8a857d !important;
+}
+
+html.eink-dark [class*="fixed"] button[class*="bg-mint"],
+html.eink-dark [class*="fixed"] button[class*="bg-sky"] {
+    background-color: #d4cfc7 !important;
+    color: #2a2826 !important;
+    border-color: #d4cfc7 !important;
+}
+
+html.eink-dark [class*="fixed"] button[class*="bg-mint"]:hover,
+html.eink-dark [class*="fixed"] button[class*="bg-sky"]:hover {
+    background-color: #c0bbb2 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   16. OVERRIDES AGRESIVOS - Eliminar TODOS los colores azules restantes
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Botón "Presentar" - Forzar estilo e-ink */
+.eink a[class*="bg-sky"],
+.eink button[class*="bg-sky"],
+.eink [class*="border-sky"],
+.eink a[class*="text-sky"],
+.eink button[class*="text-sky"] {
+    background-color: transparent !important;
+    border-color: var(--eink-gray-light) !important;
+    color: var(--eink-ink) !important;
+}
+
+.eink a[class*="bg-sky"]:hover,
+.eink button[class*="bg-sky"]:hover {
+    background-color: var(--eink-gray-pale) !important;
+    border-color: var(--eink-gray-mid) !important;
+}
+
+/* Todos los focus azules - Eliminar */
+.eink input:focus,
+.eink textarea:focus,
+.eink select:focus,
+.eink [class*="focus:border-sky"]:focus,
+.eink [class*="focus:border-mint"]:focus {
+    border-color: var(--eink-gray-dark) !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Fondos con opacidad tipo bg-white/10, bg-black/20 - Hacer transparentes o neutros */
+.eink [class*="bg-white\\/"],
+.eink header [class*="bg-white\\/"] {
+    background-color: transparent !important;
+}
+
+/* Contenedor del logo - Eliminar fondo y borde COMPLETAMENTE */
+.eink header>div>div:first-child [class*="rounded-xl"],
+.eink header [class*="w-10"][class*="h-10"] {
+    background-color: transparent !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Quitar fill de cualquier icono en header */
+.eink header svg {
+    color: var(--eink-ink) !important;
+    fill: none !important;
+}
+
+/* Eliminar cualquier borde interno de select y su contenedor */
+.eink header [class*="flex"][class*="items-center"][class*="gap-2"][class*="px-4"] {
+    border: 1px solid var(--eink-gray-light) !important;
+    background: transparent !important;
+}
+
+.eink header [class*="flex"][class*="items-center"][class*="gap-2"][class*="px-4"]>* {
+    border: none !important;
+}
+
+/* Campo de búsqueda - Fix específico */
+.eink main input[placeholder*="uscar"],
+.eink main input[placeholder*="search"] {
+    background-color: var(--eink-paper-light) !important;
+    border: 1px solid var(--eink-gray-light) !important;
+    color: var(--eink-ink) !important;
+    border-radius: var(--eink-border-radius) !important;
+}
+
+.eink main input[placeholder*="uscar"]:focus,
+.eink main input[placeholder*="search"]:focus {
+    border-color: var(--eink-gray-dark) !important;
+    outline: none !important;
+}
+
+/* Lupa de búsqueda dentro del campo */
+.eink main [class*="relative"] svg,
+.eink main svg[class*="Search"],
+.eink main svg.lucide-search {
+    color: var(--eink-gray-mid) !important;
+}
+
+/* Todos los links con colores - Neutralizar */
+.eink a[class*="text-mint"],
+.eink a[class*="text-sky"],
+.eink a[class*="text-lme-primary"] {
+    color: var(--eink-ink) !important;
+    text-decoration: underline !important;
+}
+
+/* Fill de iconos Play dentro del botón Presentar */
+.eink a svg.fill-current,
+.eink button svg.fill-current {
+    fill: var(--eink-ink) !important;
+}
+
+/* Eliminar CUALQUIER fondo azul/verde/mint restante */
+.eink [class*="bg-mint"],
+.eink [class*="bg-sky"]:not([style*="background-color"]) {
+    background-color: transparent !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PASOS APP REFINEMENT - aire visual sobre la base e-ink
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── SISTEMA DE TOKENS E-INK ────────────────────────────────────────────
+   Sobreescribe los tokens @theme en modo eink. Dado que todas las
+   clases Tailwind referencian var(--color-*), esta sección es suficiente
+   para el 90 % del cambio visual. Los overrides !important que quedan
+   debajo cubren gradientes, colores estáticos (indigo/amber) y elementos
+   HTML no claseados.
+   ─────────────────────────────────────────────────────────────────── */
+.eink {
+    /* Paleta base */
+    --color-ink: var(--eink-ink);
+    --color-sub: var(--eink-ink-light);
+    --color-line: rgba(74, 71, 68, 0.28);
+    --color-bg0: var(--eink-paper);
+    --color-mint: var(--eink-ink);
+    --color-sky: var(--eink-ink);
+    --color-vio: var(--eink-ink-soft);
+
+    /* Superficies y bordes LME */
+    --color-lme-background: var(--eink-paper);
+    --color-lme-surface: rgba(235, 230, 220, 0.78);
+    --color-lme-surface-alt: rgba(241, 236, 226, 0.82);
+    --color-lme-border: rgba(74, 71, 68, 0.22);
+
+    /* Texto LME */
+    --color-lme-text: var(--eink-ink);
+    --color-lme-text-secondary: var(--eink-ink-light);
+    --color-lme-muted: var(--eink-ink-light);
+
+    /* Primario / Acción */
+    --color-lme-primary: var(--eink-ink);
+    --color-lme-primary-dark: var(--eink-ink-soft);
+    --color-lme-secondary: var(--eink-ink-light);
+    --color-lme-accent: var(--eink-ink-soft);
+
+    /* Estados */
+    --color-lme-danger: var(--eink-ink);
+    --color-lme-warning: var(--eink-ink-soft);
+
+    /* Sombra */
+    --shadow-lme: 0 16px 42px rgba(37, 36, 34, 0.08);
+}
+
+.eink body.theme-professional::before,
+.eink body.theme-student::before,
+.eink body.theme-tablet::before {
+    background: none !important;
+}
+
+.eink [class*="bg-gradient-to"] {
+    background-image: none !important;
+    background-color: rgba(241, 236, 226, 0.72) !important;
+}
+
+.eink section,
+.eink article,
+.eink .glass-panel,
+.eink .glass-card {
+    box-shadow: 0 14px 36px rgba(37, 36, 34, 0.055) !important;
+}
+
+.eink .rounded-3xl,
+.eink .rounded-2xl {
+    border-radius: 12px !important;
+}
+
+.eink .rounded-full {
+    border-radius: 999px !important;
+}
+
+.eink [class*="bg-black\\/"] {
+    background-color: rgba(203, 197, 186, 0.22) !important;
+}
+
+/* border-white/*, border-mint/*, border-sky/* → cubiertos por tokens --color-mint/sky/line */
+.eink [class*="border-white\\/"],
+.eink [class*="border-mint\\/"],
+.eink [class*="border-sky\\/"] {
+    border-color: rgba(74, 71, 68, 0.22) !important;
+}
+/* text-mint, text-sky, text-vio → cubiertos por tokens --color-mint/sky/vio en .eink {} */
+
+.eink [class*="tracking-["],
+.eink [class*="tracking-wide"] {
+    letter-spacing: 0.08em !important;
+}
+
+.eink h1,
+.eink h2,
+.eink h3 {
+    text-wrap: balance;
+}
+
+.eink p {
+    text-wrap: pretty;
+}
+
+.eink button,
+.eink a,
+.eink select,
+.eink input {
+    font-family: var(--eink-font-sans) !important;
+}

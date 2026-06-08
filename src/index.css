@@ -1,0 +1,512 @@
+/*
+ * Copyright (C) 2024-2025 EDUmind - Los Mundos Edufis
+ * Author: Luis Vilela Acuña
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+@import "tailwindcss";
+@import "./styles/animations.css";
+@import "./styles/eink.css";
+
+/* Local Fonts for Offline Support */
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/fonts/AtkinsonHyperlegible-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/fonts/AtkinsonHyperlegible-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Literata';
+  src: url('/fonts/Literata-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/OpenDyslexic-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/OpenDyslexic-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  /* ── Escala de z-index semántica ─────────────────────────────────────
+     Los valores altos son necesarios porque glass-panel usa backdrop-filter
+     que crea stacking contexts independientes en el contenido. El header
+     debe tener z-index suficientemente alto para superar a cualquier
+     stacking context generado por secciones con backdrop-filter.
+     ─────────────────────────────────────────────────────────────────── */
+  --z-sticky: 200;
+  --z-dropdown-backdrop: 490;
+  --z-dropdown: 500;
+  --z-modal-backdrop: 510;
+  --z-modal: 520;
+  --z-toast: 530;
+  --z-top: 9999;
+
+  /* ── Paleta EDUmind (tema profesional) ──────────────────────────────── */
+  --color-mint: #3ddad7;
+  --color-sky: #3c7dff;
+  --color-vio: #a963ff;
+  --color-ink: #f5fbff;
+  --color-sub: #96aac7;
+  --color-bg0: #040614;
+  --color-line: rgba(90, 126, 181, .38);
+
+  /* ── Colores LME (superficies, texto, estados) ──────────────────────── */
+  --color-lme-background: #040614;
+  --color-lme-surface: rgba(25, 40, 66, 0.72);
+  --color-lme-surface-alt: rgba(13, 22, 38, 0.78);
+  --color-lme-border: rgba(90, 126, 181, 0.38);
+  --color-lme-text: #f5fbff;
+  --color-lme-text-secondary: #96aac7;
+  --color-lme-muted: #96aac7;
+  --color-lme-primary: #3c7dff;
+  --color-lme-primary-dark: #2563eb;
+  --color-lme-secondary: #3ddad7;
+  --color-lme-accent: #a963ff;
+  --color-lme-danger: #ef4444;
+  --color-lme-warning: #FBBF24;
+
+  --shadow-lme: 0 24px 46px rgba(4, 10, 28, 0.55);
+}
+
+/* ── Variables CSS heredadas — ahora aliases de @theme ─────────────────
+   Fuente única de verdad: cambiar un token en @theme (o en .eink) se
+   propaga automáticamente aquí y a todos los usos de var(--lme-*).
+   ─────────────────────────────────────────────────────────────────── */
+:root {
+  --lme-background: var(--color-lme-background);
+  --lme-surface: var(--color-lme-surface);
+  --lme-surface-alt: var(--color-lme-surface-alt);
+  --lme-primary: var(--color-lme-primary);
+  --lme-primary-dark: var(--color-lme-primary-dark);
+  --lme-secondary: var(--color-lme-secondary);
+  --lme-text: var(--color-lme-text);
+  --lme-text-secondary: var(--color-lme-text-secondary);
+  --lme-border: var(--color-lme-border);
+  --lme-mint: var(--color-mint);
+  --lme-sky: var(--color-sky);
+  --lme-sunset: #ff6b9d;
+
+  --base-font-size: 16px;
+  --heading-scale: 1.25;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --card-padding: 1rem;
+  --column-gap: 1.5rem;
+  --border-radius: 1rem;
+
+  /* Personalización de fuente — funciona en todos los temas */
+  --user-font-size: 18px;
+  --user-font-family: "Atkinson Hyperlegible", "OpenDyslexic", Verdana, sans-serif;
+}
+
+/* Base Styles */
+body {
+  background-color: var(--lme-background);
+  color: var(--lme-text);
+  font-family: var(--font-family);
+  font-size: var(--base-font-size);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body[data-edumind-embed="true"] {
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+body[data-edumind-embed="true"] #root {
+  min-height: 100dvh;
+}
+
+body[data-edumind-embed="true"] header.sticky,
+body[data-edumind-embed="true"] .edumind-footer,
+body[data-edumind-embed="true"] .fixed.bottom-6,
+body[data-edumind-embed="true"] [class*="fixed bottom-6"] {
+  display: none !important;
+}
+
+body[data-edumind-embed="true"] main {
+  padding: 0.75rem !important;
+}
+
+body[data-edumind-embed="true"] main > .mb-6:first-child,
+body[data-edumind-embed="true"] main > .mb-8:first-child {
+  margin-bottom: 0.75rem !important;
+}
+
+body[data-edumind-embed="true"] .pasos-board-embed {
+  min-height: 100dvh;
+}
+
+body[data-edumind-embed="true"] .pasos-board-embed-main {
+  padding: 0.5rem !important;
+}
+
+body[data-edumind-embed="true"] .pasos-board-embed-shell {
+  margin-bottom: 0 !important;
+  padding: 0.75rem !important;
+  border-radius: 18px !important;
+}
+
+/* Professional Theme - Dark Background with Gradients */
+body.theme-professional::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 15% 50%, rgba(61, 218, 215, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(60, 125, 255, 0.08), transparent 25%),
+    linear-gradient(180deg, #040614 0%, #0b1425 100%);
+  pointer-events: none;
+}
+
+/* Student Theme - Bright Background with Playful Patterns */
+body.theme-student::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.1), transparent 30%),
+    radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.1), transparent 30%),
+    linear-gradient(180deg, #fef7ed 0%, #fffbeb 100%);
+  pointer-events: none;
+}
+
+/* ── Sidebar de apoyo docente ────────────────────────────────────────
+   Establece container queries para que los paneles internos
+   respondan al ANCHO del sidebar (~288px), no al viewport.
+   Esto evita que grids xl:grid-cols-3 se activen en un contenedor estrecho.
+   ─────────────────────────────────────────────────────────────────── */
+.pasos-sidebar {
+  container-type: inline-size;
+  container-name: sidebar;
+}
+
+@container sidebar (max-width: 400px) {
+  /* Colapsar todos los grids multi-columna a una sola columna */
+  .pasos-sidebar .grid {
+    grid-template-columns: 1fr !important;
+  }
+  /* Reducir tipografía para paneles densos */
+  .pasos-sidebar h3,
+  .pasos-sidebar h4 {
+    font-size: 0.8rem;
+  }
+  .pasos-sidebar p,
+  .pasos-sidebar span,
+  .pasos-sidebar label {
+    font-size: 0.75rem;
+  }
+  /* Ajustar padding de tarjetas internas */
+  .pasos-sidebar .rounded-xl,
+  .pasos-sidebar .rounded-2xl {
+    padding: 0.5rem;
+  }
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background-color: var(--color-lme-surface);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-lme-border);
+  box-shadow: var(--shadow-lme);
+  border-radius: var(--border-radius);
+}
+
+/* ============================================
+   ACCESIBILIDAD: Aplicar fuentes personalizadas
+   ============================================ */
+/* Aplicar fuente personalizada a todo el contenido principal */
+main,
+main * {
+  font-family: var(--user-font-family) !important;
+}
+
+/* Títulos de tareas y columnas */
+main h1,
+main h2,
+main h3,
+main h4,
+main h5,
+main h6,
+main .card-title,
+main [class*="font-bold"],
+main [class*="text-xl"],
+main [class*="text-lg"] {
+  font-family: var(--user-font-family) !important;
+  font-size: calc(var(--user-font-size) * 1.1) !important;
+}
+
+/* Contenido de tarjetas - usar tamaño personalizado */
+main p,
+main span:not([class*="text-xs"]),
+main label,
+main .task-content,
+main [class*="glass-card"] {
+  font-size: var(--user-font-size) !important;
+}
+
+/* Mantener controles de UI con fuente del sistema */
+header,
+header *,
+button:not(main button),
+select,
+option,
+input,
+footer,
+footer * {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Botones dentro de main pueden usar la fuente personalizada */
+main button {
+  font-family: var(--user-font-family) !important;
+}
+
+/* ============================================
+   ESCALA DE RADIOS — fuente única de verdad
+   rounded-lg (12px) → tarjetas internas, inputs
+   rounded-xl (16px) → modales, dropdowns
+   rounded-2xl (20px) → tarjetas, paneles medianos
+   rounded-3xl (24px) → secciones principales, shells
+   rounded-full (9999px) → botones pill, badges
+   ============================================ */
+
+/* ============================================
+   VARIANTES DE BOTÓN — sistema unificado
+   Uso: añadir clase .btn-* junto al elemento
+   ============================================ */
+.btn-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  border-width: 1px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+/* Acción primaria: azul cielo */
+.btn-primary {
+  border-color: color-mix(in srgb, var(--color-sky) 30%, transparent);
+  background-color: color-mix(in srgb, var(--color-sky) 10%, transparent);
+  color: var(--color-sky);
+}
+.btn-primary:hover { background-color: color-mix(in srgb, var(--color-sky) 20%, transparent); }
+
+/* Acción secundaria: verde mint */
+.btn-mint {
+  border-color: color-mix(in srgb, var(--color-mint) 30%, transparent);
+  background-color: color-mix(in srgb, var(--color-mint) 10%, transparent);
+  color: var(--color-mint);
+}
+.btn-mint:hover { background-color: color-mix(in srgb, var(--color-mint) 20%, transparent); }
+
+/* Acción neutra: borde sutil */
+.btn-ghost {
+  border-color: var(--color-line);
+  background-color: transparent;
+  color: var(--color-ink);
+}
+.btn-ghost:hover { background-color: rgba(255,255,255,0.05); }
+
+/* Estado deshabilitado común */
+.btn-header:disabled,
+.btn-primary:disabled,
+.btn-mint:disabled,
+.btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.glass-card {
+  background-color: var(--color-lme-surface-alt);
+  border: 1px solid var(--color-lme-border);
+  border-radius: calc(var(--border-radius) * 0.66);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lme);
+  border-color: var(--color-sky);
+}
+
+/* Theme-specific adjustments */
+body.theme-student .glass-panel,
+body.theme-student .glass-card {
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.15);
+}
+
+body.theme-student h1,
+body.theme-student h2,
+body.theme-student h3 {
+  font-weight: 700;
+}
+
+/* Tablet Theme - Optimized for touch and distance viewing */
+body.theme-tablet::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 30% 70%, rgba(16, 185, 129, 0.08), transparent 35%),
+    radial-gradient(circle at 70% 30%, rgba(245, 158, 11, 0.08), transparent 35%),
+    linear-gradient(180deg, #f0f4f8 0%, #e2e8f0 100%);
+  pointer-events: none;
+}
+
+body.theme-student .glass-panel,
+body.theme-student .glass-card {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+}
+
+body.theme-student h1,
+body.theme-student h2,
+body.theme-student h3 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Prevent student theme font from applying to UI controls */
+body.theme-student select,
+body.theme-student option,
+body.theme-student button,
+body.theme-student input {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Tablet Theme Styles */
+body.theme-tablet .glass-panel,
+body.theme-tablet .glass-card {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+}
+
+body.theme-tablet h1,
+body.theme-tablet h2,
+body.theme-tablet h3 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ============================================
+   RESPONSIVE: Tablet Optimizations (768px - 1024px)
+   ============================================ */
+@media (min-width: 768px) and (max-width: 1024px) {
+
+  /* Larger touch targets */
+  button,
+  a,
+  [role="button"] {
+    min-height: 56px;
+    min-width: 56px;
+  }
+
+  /* Larger text for readability */
+  :root {
+    --base-font-size: 18px;
+  }
+
+  /* More padding on cards */
+  .glass-card {
+    padding: 1.5rem;
+  }
+}
+
+/* ============================================
+   RESPONSIVE: Giant Screen / Kiosk Mode (1920px+)
+   ============================================ */
+@media (min-width: 1920px) {
+  :root {
+    --base-font-size: 22px;
+    --card-padding: 2rem;
+    --column-gap: 2rem;
+  }
+
+  /* Larger columns */
+  .glass-card {
+    min-width: 480px;
+  }
+
+  /* Even larger touch targets for distance use */
+  button,
+  a,
+  [role="button"] {
+    min-height: 64px;
+  }
+}
+
+/* ============================================
+   TOUCH UTILITIES
+   ============================================ */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Prevent text selection during drag */
+.dragging {
+  user-select: none;
+  cursor: grabbing !important;
+}
+
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 3px solid var(--color-sky);
+  outline-offset: 2px;
+}
+
+/* Smooth scrolling for snap containers */
+.snap-x {
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.snap-center {
+  scroll-snap-align: center;
+}
