@@ -38,6 +38,7 @@ interface EDUmindFooterProps {
     locale?: 'es' | 'en' | 'zh';
     hideNavigation?: boolean;
     showVersion?: boolean;
+    repoUrl?: string;
 }
 
 interface FooterTranslations {
@@ -46,6 +47,8 @@ interface FooterTranslations {
     copyright: string;
     feedback: string;
     home: string;
+    openSource: string;
+    sourceCode: string;
 }
 
 const translations: Record<string, FooterTranslations> = {
@@ -54,21 +57,27 @@ const translations: Record<string, FooterTranslations> = {
         next: 'Siguiente →',
         copyright: '© {year} EDUmind por',
         feedback: '📋 Reportar Error',
-        home: '🏠 Inicio'
+        home: '🏠 Inicio',
+        openSource: 'Software libre con licencia',
+        sourceCode: 'Código fuente en GitHub'
     },
     en: {
         previous: '← Previous',
         next: 'Next →',
         copyright: '© {year} EDUmind by',
         feedback: '📋 Report Issue',
-        home: '🏠 Home'
+        home: '🏠 Home',
+        openSource: 'Free software licensed under',
+        sourceCode: 'Source code on GitHub'
     },
     zh: {
         previous: '← 上一页',
         next: '下一页 →',
         copyright: '© {year} EDUmind 由',
         feedback: '📋 报告问题',
-        home: '🏠 首页'
+        home: '🏠 首页',
+        openSource: '自由软件，许可证',
+        sourceCode: 'GitHub 源代码'
     }
 };
 
@@ -76,7 +85,7 @@ export default function EDUmindFooter({
     appName,
     version,
     versionStage,
-    author = 'EDUmind Team',
+    author = 'Luis Vilela Acuña',
     year = new Date().getFullYear(),
     previousPage,
     nextPage,
@@ -86,7 +95,8 @@ export default function EDUmindFooter({
     className = '',
     locale = 'es',
     hideNavigation = false,
-    showVersion = true
+    showVersion = true,
+    repoUrl = 'https://github.com/edumind-es/pasos-v2'
 }: EDUmindFooterProps) {
     const t = translations[locale] || translations.es;
 
@@ -126,6 +136,20 @@ export default function EDUmindFooter({
                 <p>
                     {t.copyright.replace('{year}', year.toString())}{' '}
                     <strong>{author}</strong>
+                </p>
+                <p className="footer-license" style={{ marginTop: '0.35rem', fontSize: '0.875rem' }}>
+                    {t.openSource}{' '}
+                    <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>AGPL-3.0-or-later</a>
+                    {' / '}
+                    <a href="https://eupl.eu/1.2/es/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>EUPL-1.2</a>
+                    {repoUrl && (
+                        <>
+                            <span style={{ margin: '0 0.5rem' }}>·</span>
+                            <a href={repoUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                                {t.sourceCode}
+                            </a>
+                        </>
+                    )}
                 </p>
             </div>
 
