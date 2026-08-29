@@ -1,51 +1,86 @@
-# Corre la misma tanda que se corre en local: no hay dos verdades sobre si el
-# proyecto está bien.
-#
-# NO despliega. El despliegue es siempre una decisión manual.
-name: Pruebas
+# CI de pasos_v2: lint + tipos + tests + build del frontend, y tests del backend.
+# Se ejecuta en cada push a main y en cada pull request.
+name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
-  workflow_dispatch:
+  schedule:
+    # Chequeo de seguridad semanal (lunes 06:00 UTC), aunque no haya cambios
+    - cron: '0 6 * * 1'
 
 jobs:
   frontend:
+    name: Frontend (lint, tipos, tests, build)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: .
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
+          cache: npm
+
       - name: Instalar dependencias
-        run: npm ci || npm install
+        run: npm ci
+
       - name: Lint (informativo, deuda conocida — ver issue)
+        # eslint-plugin-react-hooks 7.1.1 estrena la regla `static-components`,
+        # que destapa 15 componentes definidos dentro de otros componentes. Son
+        # hallazgos reales (provocan remontajes y pérdida de estado), pero
+        # previos a este cambio. Se ven y se siguen en un issue en vez de
+        # dejar el CI en rojo permanente o congelar la versión del plugin.
         continue-on-error: true
         run: npm run lint
-      - name: Pruebas
-        run: npm run test:run
-      - name: Compilar
+
+      - name: Tests unitarios
+        run: npx vitest run
+
+      - name: Build de producción (incluye chequeo de tipos)
         run: npm run build
+
   backend:
+    name: Backend (pytest)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.10'
           cache: pip
+          cache-dependency-path: backend/requirements.txt
+
       - name: Instalar dependencias
         run: |
           pip install -r requirements.txt
-          pip install pytest
-      - name: Pruebas
-        run: pytest -q
+          pip install -e ".[dev]"
+
+      - name: Tests
+        run: python -m pytest tests -q
+
+  security:
+    name: Seguridad (audit del bundle)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Auditoría completa (informativa, no bloquea)
+        run: npm audit || true
+
+      - name: Gate — vulnerabilidades que VIAJAN al navegador
+        # Solo dependencias de runtime (--omit=dev). Falla si aparece una high+
+        # que llegue al bundle del usuario. Las de herramientas de build no gatean.
+        run: npm audit --omit=dev --audit-level=high

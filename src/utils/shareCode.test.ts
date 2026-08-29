@@ -36,7 +36,6 @@ describe('shareCode utilities', () => {
             shareCode: 'ABC-1234',
             completedTasks: ['task-1'],
             lastAccess: new Date().toISOString(),
-            alias: 'Marta',
         });
 
         expect(getAllStudentProgress()).toHaveLength(1);
@@ -44,7 +43,6 @@ describe('shareCode utilities', () => {
         expect(toggleTaskCompletion('ABC-1234', 'task-1')).toBe(false);
 
         const stored = getAllStudentProgress()[0];
-        expect(stored.alias).toBe('Marta');
         expect(stored.completedTasks).toEqual(['task-2']);
     });
 
@@ -56,7 +54,6 @@ describe('shareCode utilities', () => {
             submittedAt: new Date().toISOString(),
         });
         syncStudentProgressFromRemote('ABC-1234', {
-            learnerLabel: 'Leo',
             completedTaskIds: ['task-1'],
             helpTaskIds: ['task-2'],
             validatedTaskIds: ['task-1'],
@@ -81,7 +78,6 @@ describe('shareCode utilities', () => {
         });
 
         const stored = getAllStudentProgress()[0];
-        expect(stored.alias).toBe('Leo');
         expect(stored.helpTaskIds).toEqual(['task-2']);
         expect(stored.validatedTaskIds).toEqual(['task-1']);
         expect(stored.evidenceEntries?.[0]?.taskId).toBe('task-1');

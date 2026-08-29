@@ -18,28 +18,25 @@
 
 import { useMemo, useEffect } from 'react';
 import { useBoardViewState } from '../hooks/useBoardViewState';
-import { Layout, Plus, User, Play, Download, Share2, Copy, Check, Sparkles, LogOut, Layers3, FileDown, Database, CalendarDays, CalendarRange, UserRoundPlus, FileText, Network, Building2, AlertCircle, ListChecks, RefreshCcw, ClipboardList, ArrowRight, Palette, GraduationCap } from 'lucide-react';
+import { useShareBoard } from '../hooks/useShareBoard';
+import { useBoardInsights } from '../hooks/useBoardInsights';
+import { Plus, User, Play, Download, Share2, Sparkles, LogOut, Layers3, FileDown, Database, CalendarDays, CalendarRange, UserRoundPlus, FileText, Network, Building2, AlertCircle, GraduationCap } from 'lucide-react';
 import { useBoardStore, useStore } from '../store/boardStore';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import TaskModal from '../components/TaskModal';
 import AIWizardModal from '../components/AIWizardModal';
 import { BoardSwitcherButton } from '../components/BoardSwitcherButton';
-import { ClassroomQuickCreate } from '../components/ClassroomQuickCreate';
 import { EditableBoardTitle } from '../components/EditableBoardTitle';
 import { TextActionDialog } from '../components/TextActionDialog';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { HeaderOverflowMenu } from '../components/HeaderOverflowMenu';
-import { SidebarIconStrip, CLASSROOM_SIDEBAR_PANELS, ORG_SIDEBAR_PANELS, type SidebarPanelDef } from '../components/SidebarIconStrip';
 import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, type DragStartEvent, type DragOverEvent, defaultDropAnimationSideEffects, type DropAnimation } from '@dnd-kit/core';
 import { createPortal } from 'react-dom';
 import { BoardColumn } from '../components/BoardColumn';
 import { TaskCard } from '../components/TaskCard';
-// ThemeSwitcher eliminado - Ahora solo usamos el tema profesional
 import { BoardToolbar } from '../components/BoardToolbar';
 import { useConfetti } from '../hooks/useConfetti';
 import { AccessibilityControls } from '../components/AccessibilityControls';
-import { generateShareCode, saveSharedBoard, getSharedBoards, type SharedBoard } from '../utils/shareCode';
-import { BoardInsightsPanel } from '../components/BoardInsightsPanel';
 import { BoardTemplateDialog } from '../components/BoardTemplateDialog';
 import { StorageControlCenter } from '../components/StorageControlCenter';
 import { WorkspaceContextBar } from '../components/WorkspaceContextBar';
@@ -47,19 +44,14 @@ import { CreateBoardDialog } from '../components/CreateBoardDialog';
 import { LearnerReviewDialog } from '../components/LearnerReviewDialog';
 import { BoardAssignmentsDialog } from '../components/BoardAssignmentsDialog';
 import { BoardDocumentsPanel } from '../components/BoardDocumentsPanel';
-import { TeamActivityPanel } from '../components/TeamActivityPanel';
-import { TeamCoordinationPanel } from '../components/TeamCoordinationPanel';
-import { TeamMeetingPanel } from '../components/TeamMeetingPanel';
+import { BoardShareModal } from '../components/BoardShareModal';
+import { BoardTrashModal, UndoDeleteToast } from '../components/BoardTrashModal';
+import { BoardSidebar } from '../components/BoardSidebar';
+import { ProWorkspaceGate, ClassroomTemplatePicker, EmptyWorkspaceNotice } from '../components/BoardEmptyStates';
 import { downloadBoardReportHtml } from '../utils/boardReports';
 import type { SupportedBoardType } from '../utils/boardPresets';
 import { getWorkspaceModeFromPath, getWorkspaceSubPath, matchesWorkspaceContext } from '../utils/workspaceRoutes';
-import {
-    createRemoteShare,
-    getBoardInsights,
-    getApiErrorMessage,
-    logoutProUser,
-    syncRemoteBoard,
-} from '../services/pasosApi';
+import { logoutProUser } from '../services/pasosApi';
 import { logAppEvent } from '../services/appTelemetry';
 
 function BoardView() {
@@ -79,15 +71,9 @@ function BoardView() {
         toggleTaskSelection,
         clearTaskSelection,
         setSelectedTaskIds,
-        proSyncState,
-        lastProSyncAt,
         lastProSyncError,
         createBoard,
         setActiveBoard,
-        workspacePanelPreferences,
-        setWorkspacePanelPreference,
-        visualMode,
-        setVisualMode,
     } = useStore();
     const navigate = useNavigate();
     const location = useLocation();
@@ -104,13 +90,6 @@ function BoardView() {
         undoTimeoutRef,
         searchQuery, setSearchQuery,
         filterColor, setFilterColor,
-        showShareModal, setShowShareModal,
-        shareCode, setShareCode,
-        codeCopied, setCodeCopied,
-        isSharing, setIsSharing,
-        shareError, setShareError,
-        shareSource, setShareSource,
-        shareExpiresAt, setShareExpiresAt,
         columnDialog, setColumnDialog,
         columnToDelete, setColumnToDelete,
         createBoardDialogOpen, setCreateBoardDialogOpen,
@@ -120,10 +99,6 @@ function BoardView() {
         showStorageCenter, setShowStorageCenter,
         showAssignmentsDialog, setShowAssignmentsDialog,
         showDocumentsPanel, setShowDocumentsPanel,
-        remoteInsights, setRemoteInsights,
-        remoteInsightsLoading, setRemoteInsightsLoading,
-        remoteInsightsError, setRemoteInsightsError,
-        selectedLearnerKey, setSelectedLearnerKey,
     } = useBoardViewState();
 
     const isProUser = currentUser?.mode === 'pro';
@@ -154,6 +129,28 @@ function BoardView() {
         && (!isClassroomWorkspace || currentBoard?.contextType === 'team' || currentBoard?.contextType === 'organization')
     );
     const currentBoardId = currentBoard?.id ?? null;
+
+    const {
+        showShareModal, setShowShareModal,
+        shareCode,
+        codeCopied,
+        isSharing,
+        shareError,
+        shareSource,
+        shareExpiresAt,
+        existingShare,
+        handleShare,
+        handleCopyCode,
+    } = useShareBoard({ currentBoard, activeBoardId, isProUser });
+
+    const {
+        remoteInsights, setRemoteInsights,
+        remoteInsightsLoading,
+        remoteInsightsError,
+        setSelectedLearnerKey,
+        selectedLearner,
+    } = useBoardInsights({ isProUser, currentBoardId, isClassroomWorkspace, shareCode, shareExpiresAt });
+
     const columns = useMemo(() => currentBoard?.columns ?? [], [currentBoard]);
     const tasks = useMemo(() => currentBoard?.tasks ?? [], [currentBoard]);
     const isReadOnlyBoard = Boolean(isProUser && currentBoard?.remoteRole === 'viewer');
@@ -163,11 +160,6 @@ function BoardView() {
         return deletedTasks.filter(entry => entry.boardId === activeBoardId);
     }, [deletedTasks, activeBoardId]);
     const lastDeleted = deletedForBoard[deletedForBoard.length - 1];
-    const selectedLearner = useMemo(() => (
-        remoteInsights?.learners.find((learner) => learner.learner_key === selectedLearnerKey) ?? null
-    ), [remoteInsights?.learners, selectedLearnerKey]);
-    // Get existing share code for current board
-    const existingShare = getSharedBoards().find(s => s.boardId === activeBoardId);
 
     useEffect(() => {
         if (!compactEmbed || typeof window === 'undefined' || window.parent === window) {
@@ -221,59 +213,12 @@ function BoardView() {
     }, [activeBoardId, setActiveBoard, visibleBoards]);
 
     useEffect(() => {
-        if (!isProUser || !currentBoardId || !isClassroomWorkspace) {
-            setRemoteInsights(null);
-            setRemoteInsightsLoading(false);
-            setRemoteInsightsError(null);
-            setSelectedLearnerKey(null);
-            return;
-        }
-
-        let cancelled = false;
-
-        const loadInsights = async () => {
-            setRemoteInsightsLoading(true);
-            try {
-                const payload = await getBoardInsights(currentBoardId);
-                if (!cancelled) {
-                    setRemoteInsights(payload);
-                    setRemoteInsightsError(null);
-                }
-            } catch (error) {
-                if (cancelled) return;
-                const message = getApiErrorMessage(error, 'No se pudo cargar el seguimiento remoto del tablero.');
-                setRemoteInsightsError(message);
-                logAppEvent({
-                    type: 'board_insights_load_failed',
-                    level: 'warning',
-                    message,
-                    metadata: { board_id: currentBoardId },
-                });
-            } finally {
-                if (!cancelled) {
-                    setRemoteInsightsLoading(false);
-                }
-            }
-        };
-
-        void loadInsights();
-        const timer = window.setInterval(() => {
-            void loadInsights();
-        }, 15000);
-
-        return () => {
-            cancelled = true;
-            window.clearInterval(timer);
-        };
-    }, [currentBoardId, isClassroomWorkspace, isProUser, shareCode, shareExpiresAt]);
-
-    useEffect(() => {
         return () => {
             if (undoTimeoutRef.current) {
                 window.clearTimeout(undoTimeoutRef.current);
             }
         };
-    }, []);
+    }, [undoTimeoutRef]);
 
     useEffect(() => {
         if (selectionBoardId && selectionBoardId !== activeBoardId) {
@@ -288,106 +233,6 @@ function BoardView() {
             setSelectedTaskIds(filtered);
         }
     }, [tasks, selectedTaskIds, setSelectedTaskIds]);
-
-    // Handle share button click
-    const handleShare = async () => {
-        setShowShareModal(true);
-        setCodeCopied(false);
-        setShareError(null);
-        setShareExpiresAt(null);
-        setShareCode(null);
-        setIsSharing(true);
-
-        try {
-            if (!currentBoard || !activeBoardId) {
-                setShareError('No hay un tablero activo para compartir.');
-                return;
-            }
-
-            if (isProUser) {
-                if (currentBoard.contextType === 'team' || currentBoard.contextType === 'organization') {
-                    setShareError('Los tableros de equipo y claustro no admiten enlaces anonimos todavia. Usa este espacio como coordinacion interna.');
-                    return;
-                }
-                const remoteBoard = await syncRemoteBoard(currentBoard);
-                const remoteShare = await createRemoteShare(remoteBoard.id);
-                const shared: SharedBoard = {
-                    code: remoteShare.code,
-                    boardId: remoteBoard.id,
-                    boardTitle: remoteBoard.title,
-                    createdAt: new Date().toISOString(),
-                    expiresAt: remoteShare.expires_at,
-                };
-                saveSharedBoard(shared);
-                setShareSource('pro');
-                setShareCode(remoteShare.code);
-                setShareExpiresAt(remoteShare.expires_at);
-                logAppEvent({
-                    type: 'board_share_created',
-                    level: 'info',
-                    message: 'Se generó un enlace sincronizado para compartir el tablero.',
-                    metadata: { source: 'pro', board_id: remoteBoard.id, context_type: currentBoard.contextType ?? 'personal' },
-                });
-                return;
-            }
-
-            if (existingShare) {
-                setShareSource('local');
-                setShareCode(existingShare.code);
-                setShareExpiresAt(existingShare.expiresAt ?? null);
-                logAppEvent({
-                    type: 'board_share_reused',
-                    level: 'info',
-                    message: 'Se reutilizó un enlace local ya existente para el tablero.',
-                    metadata: { source: 'local', board_id: existingShare.boardId },
-                });
-                return;
-            }
-
-            const code = generateShareCode();
-            const shared: SharedBoard = {
-                code,
-                boardId: activeBoardId,
-                boardTitle: currentBoard.title,
-                createdAt: new Date().toISOString()
-            };
-            saveSharedBoard(shared);
-            setShareSource('local');
-            setShareCode(code);
-            logAppEvent({
-                type: 'board_share_created',
-                level: 'info',
-                message: 'Se generó un enlace local para compartir el tablero.',
-                metadata: { source: 'local', board_id: activeBoardId },
-            });
-        } catch (error) {
-            const message = getApiErrorMessage(error, 'No se pudo generar el enlace compartido.');
-            setShareError(message);
-            logAppEvent({
-                type: 'board_share_failed',
-                level: 'error',
-                message,
-                metadata: { source: isProUser ? 'pro' : 'local' },
-            });
-        } finally {
-            setIsSharing(false);
-        }
-    };
-
-    // Copy code to clipboard
-    const handleCopyCode = async () => {
-        if (shareCode) {
-            const shareUrl = `${window.location.origin}/codigo?code=${shareCode}`;
-            await navigator.clipboard.writeText(shareUrl);
-            setCodeCopied(true);
-            setTimeout(() => setCodeCopied(false), 2000);
-            logAppEvent({
-                type: 'share_link_copied',
-                level: 'info',
-                message: 'Se copió el enlace compartido al portapapeles.',
-            });
-        }
-    };
 
     const handleLogout = async () => {
         if (currentUser?.mode === 'pro') {
@@ -643,44 +488,7 @@ function BoardView() {
     };
 
     if (!isClassroomWorkspace && !isProUser) {
-        return (
-            <div className="min-h-screen bg-lme-background px-4 py-6 text-lme-text sm:px-6 xl:px-8">
-                <div className="mx-auto max-w-4xl">
-                    <Link to="/" className="inline-flex items-center gap-2 text-sub transition-colors hover:text-ink">
-                        <Layout className="h-4 w-4" />
-                        Volver al panel de acceso
-                    </Link>
-                    <section className="mt-8 rounded-3xl border border-lme-border bg-lme-surface-alt/70 p-8">
-                        <p className="text-xs font-bold uppercase tracking-wide text-sub">Pasos Claustro</p>
-                        <h1 className="mt-2 text-3xl font-black text-ink">
-                            Este espacio es para trabajo institucional Pro
-                        </h1>
-                        <p className="mt-4 max-w-2xl text-sm leading-6 text-sub">
-                            Pasos Claustro permite gestionar organizaciones, equipos, coordinación y seguimiento
-                            institucional. Requiere una cuenta Pro docente vinculada al servidor de tu centro.
-                        </p>
-                        <div className="mt-6 flex flex-wrap gap-3">
-                            <Link
-                                to="/login"
-                                className="inline-flex items-center gap-2 rounded-full bg-sky px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-sky/80"
-                            >
-                                Acceder con cuenta Pro
-                            </Link>
-                            <Link
-                                to="/aula"
-                                className="inline-flex items-center gap-2 rounded-full border border-line px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-white/5"
-                            >
-                                Ir a Pasos Aula
-                            </Link>
-                        </div>
-                        <p className="mt-6 text-xs text-sub max-w-xl">
-                            Si tu centro tiene Pasos Pro activo, el administrador puede facilitarte las credenciales
-                            o la URL de acceso directo.
-                        </p>
-                    </section>
-                </div>
-            </div>
-        );
+        return <ProWorkspaceGate />;
     }
 
     return (
@@ -697,10 +505,10 @@ function BoardView() {
                         </Link>
 
                         {/* Tabs: Aula | Claustro */}
-                        <div className="flex items-center bg-black/20 border border-line rounded-full p-0.5 shrink-0">
+                        <div className="flex items-center bg-black/20 border border-line rounded-lg p-0.5 shrink-0">
                             <Link
                                 to="/aula"
-                                className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-full transition-colors ${isClassroomWorkspace ? 'bg-sky/20 text-sky' : 'text-sub hover:text-ink'}`}
+                                className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-lg transition-colors ${isClassroomWorkspace ? 'bg-sky/20 text-sky' : 'text-sub hover:text-ink'}`}
                             >
                                 <GraduationCap className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                 <span className="hidden min-[380px]:inline">Aula</span>
@@ -708,7 +516,7 @@ function BoardView() {
                             {isProUser && (
                                 <Link
                                     to="/organizacion"
-                                    className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-full transition-colors ${!isClassroomWorkspace ? 'bg-mint/20 text-mint' : 'text-sub hover:text-ink'}`}
+                                    className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-lg transition-colors ${!isClassroomWorkspace ? 'bg-mint/20 text-mint' : 'text-sub hover:text-ink'}`}
                                 >
                                     <Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                     <span className="hidden min-[380px]:inline">Claustro</span>
@@ -766,7 +574,7 @@ function BoardView() {
                         {isClassroomWorkspace && (
                             <Link
                                 to={getWorkspaceSubPath('classroom', 'present')}
-                                className="flex items-center gap-1.5 px-2 sm:px-4 py-2 rounded-full border border-sky/30 bg-sky/10 text-sky hover:bg-sky/20 transition-colors text-sm font-medium"
+                                className="flex items-center gap-1.5 px-2 sm:px-4 py-2 rounded-lg bg-ink text-lme-background hover:bg-fisico transition-colors text-sm font-bold uppercase tracking-wide"
                             >
                                 <Play className="w-4 h-4 fill-current" />
                                 <span className="hidden sm:inline">Presentar</span>
@@ -777,7 +585,7 @@ function BoardView() {
                                 type="button"
                                 onClick={() => setShowAssignmentsDialog(true)}
                                 disabled={!currentBoard || !isProUser || isReadOnlyBoard}
-                                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full border border-mint/30 bg-mint/10 text-mint hover:bg-mint/20 transition-colors text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg border border-mint/30 bg-mint/10 text-mint hover:bg-mint/20 transition-colors text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <UserRoundPlus className="w-4 h-4" />
                                 Asignar
@@ -788,7 +596,7 @@ function BoardView() {
                                 onClick={handleShare}
                                 disabled={isReadOnlyBoard || shareUnsupported}
                                 title={shareUnsupported ? 'Este espacio no admite enlaces anónimos de alumno' : undefined}
-                                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full border border-mint/30 bg-mint/10 text-mint hover:bg-mint/20 transition-colors text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg border border-mint/30 bg-mint/10 text-mint hover:bg-mint/20 transition-colors text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <Share2 className="w-4 h-4" />
                                 Compartir
@@ -798,8 +606,7 @@ function BoardView() {
                         {/* Menú de acciones secundarias */}
                         <HeaderOverflowMenu
                             items={[
-                                { kind: 'action' as const, label: visualMode === 'eink' ? 'Modo EDUmind (color)' : 'Modo E-Ink', icon: <Palette className="w-4 h-4 text-sub" />, onClick: () => setVisualMode(visualMode === 'eink' ? 'edumind' : 'eink') },
-                                { kind: 'separator' as const },
+                                { kind: 'heading' as const, label: 'Vistas' },
                                 ...(isClassroomWorkspace ? [
                                     { kind: 'link' as const, label: 'Hoy', icon: <CalendarDays className="w-4 h-4 text-sub" />, href: getWorkspaceSubPath('classroom', 'hoy') },
                                 ] : []),
@@ -809,11 +616,14 @@ function BoardView() {
                                     { kind: 'link' as const, label: 'Centro', icon: <Building2 className="w-4 h-4 text-sub" />, href: getWorkspaceSubPath('organization', 'centro') },
                                 ] : []),
                                 { kind: 'separator' as const },
+                                { kind: 'heading' as const, label: 'Herramientas' },
                                 { kind: 'action' as const, label: 'Documentos', icon: <FileText className="w-4 h-4 text-sub" />, onClick: () => setShowDocumentsPanel(true), disabled: !currentBoard },
                                 { kind: 'action' as const, label: 'Plantillas', icon: <Layers3 className="w-4 h-4 text-sub" />, onClick: () => setShowTemplateLibrary(true) },
-                                { kind: 'action' as const, label: 'Informe', icon: <FileDown className="w-4 h-4 text-sub" />, onClick: handlePedagogicalExport, disabled: !currentBoard },
-                                { kind: 'action' as const, label: 'Backup JSON', icon: <Download className="w-4 h-4 text-sub" />, onClick: handleExport },
-                                { kind: 'action' as const, label: 'IA / Magia', icon: <Sparkles className="w-4 h-4 text-sub" />, onClick: () => setShowAIWizard(true) },
+                                { kind: 'action' as const, label: 'Asistente IA', icon: <Sparkles className="w-4 h-4 text-sub" />, onClick: () => setShowAIWizard(true) },
+                                { kind: 'separator' as const },
+                                { kind: 'heading' as const, label: 'Exportar' },
+                                { kind: 'action' as const, label: 'Informe pedagógico', icon: <FileDown className="w-4 h-4 text-sub" />, onClick: handlePedagogicalExport, disabled: !currentBoard },
+                                { kind: 'action' as const, label: 'Copia de seguridad (JSON)', icon: <Download className="w-4 h-4 text-sub" />, onClick: handleExport },
                             ]}
                         />
 
@@ -823,7 +633,7 @@ function BoardView() {
                                 type="button"
                                 title={lastProSyncError}
                                 onClick={() => setShowUserMenu(true)}
-                                className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-full border border-lme-danger/40 bg-lme-danger/10 text-lme-danger/80 text-xs font-semibold transition-colors hover:bg-lme-danger/20"
+                                className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg border border-lme-danger/40 bg-lme-danger/10 text-lme-danger/80 text-xs font-semibold transition-colors hover:bg-lme-danger/20"
                             >
                                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                                 <span className="hidden sm:inline">Sin sync</span>
@@ -904,119 +714,40 @@ function BoardView() {
                 )}
 
                 {!currentBoard && isClassroomWorkspace && canCreateBoardInWorkspace && (
-                    <section className="mb-4 rounded-3xl border border-lme-border bg-lme-surface-alt/70 p-6">
-                        <p className="text-xs font-bold uppercase tracking-wide text-sub">Pasos Aula</p>
-                        <h2 className="mt-2 text-2xl font-black text-ink">Elige una plantilla para empezar</h2>
-                        <p className="mt-2 text-sm leading-6 text-sub max-w-2xl">
-                            Cada plantilla configura las columnas del Kanban para un tipo de trabajo pedagógico. Puedes editarlo después.
-                        </p>
-                        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                            {([
-                                {
-                                    type: 'learning_sequence' as const,
-                                    icon: <ListChecks className="w-5 h-5 text-sky" />,
-                                    title: 'Secuencia de aprendizaje',
-                                    desc: 'Pasos ordenados: Por hacer → En marcha → Listo',
-                                    accent: 'border-sky/20 bg-sky/5 hover:border-sky/40',
-                                },
-                                {
-                                    type: 'learning_routine' as const,
-                                    icon: <RefreshCcw className="w-5 h-5 text-mint" />,
-                                    title: 'Rutina visual',
-                                    desc: 'Preparado → Ahora → Terminado. Ideal para rutinas diarias.',
-                                    accent: 'border-mint/20 bg-mint/5 hover:border-mint/40',
-                                },
-                                {
-                                    type: 'student_plan' as const,
-                                    icon: <ClipboardList className="w-5 h-5 text-vio" />,
-                                    title: 'Plan individual',
-                                    desc: 'Organización personalizada para un alumno o grupo concreto.',
-                                    accent: 'border-vio/20 bg-vio/5 hover:border-vio/40',
-                                },
-                            ]).map(({ type, icon, title, desc, accent }) => (
-                                <button
-                                    key={type}
-                                    type="button"
-                                    onClick={() => {
-                                        setCreateBoardPreset(type);
-                                        setCreateBoardDialogOpen(true);
-                                    }}
-                                    className={`group text-left rounded-2xl border p-4 transition-all ${accent}`}
-                                >
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="rounded-xl bg-white/5 p-2">{icon}</div>
-                                        <ArrowRight className="w-4 h-4 text-sub opacity-0 group-hover:opacity-100 transition-opacity mt-1" />
-                                    </div>
-                                    <p className="mt-3 text-sm font-bold text-ink">{title}</p>
-                                    <p className="mt-1 text-xs leading-5 text-sub">{desc}</p>
-                                </button>
-                            ))}
-                        </div>
-                        <div className="mt-4 flex flex-wrap items-center gap-3">
-                            <button
-                                type="button"
-                                onClick={() => { setCreateBoardPreset(null); setCreateBoardDialogOpen(true); }}
-                                className="text-sm font-medium text-sub hover:text-ink transition-colors underline underline-offset-2"
-                            >
-                                Crear tablero vacío
-                            </button>
-                            <Link to="/" className="text-sm font-medium text-sub hover:text-ink transition-colors">
-                                Volver al panel de acceso
-                            </Link>
-                        </div>
-                    </section>
+                    <ClassroomTemplatePicker
+                        onPickTemplate={(type) => {
+                            setCreateBoardPreset(type);
+                            setCreateBoardDialogOpen(true);
+                        }}
+                    />
                 )}
 
                 {!currentBoard && (!isClassroomWorkspace || !canCreateBoardInWorkspace) && (
-                    <section className="mb-4 rounded-3xl border border-lme-border bg-lme-surface-alt/70 p-6">
-                        <p className="text-xs font-bold uppercase tracking-wide text-sub">
-                            {isClassroomWorkspace ? 'Pasos Aula' : 'Pasos Claustro'}
-                        </p>
-                        <h2 className="mt-2 text-2xl font-black text-ink">
-                            {isClassroomWorkspace
-                                ? 'Todavía no hay un tablero activo en tu espacio de aula'
-                                : 'Selecciona o crea una organización para empezar'}
-                        </h2>
-                        <p className="mt-3 max-w-3xl text-sm leading-6 text-sub">
-                            {isClassroomWorkspace
-                                ? 'Crea tu primer tablero de aula desde este espacio y empezarás a ver la secuencia, la presentación y el seguimiento pedagógico.'
-                                : 'El trabajo institucional vive en un espacio distinto. Primero elige una organización o un equipo y después crea el tablero correspondiente.'}
-                        </p>
-                        <div className="mt-5 flex flex-wrap gap-3">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (!canCreateBoardInWorkspace) return;
-                                    setCreateBoardPreset(null);
-                                    setCreateBoardDialogOpen(true);
-                                }}
-                                disabled={!canCreateBoardInWorkspace}
-                                className="rounded-full bg-sky px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-sky/80 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                {isClassroomWorkspace ? 'Crear tablero de aula' : 'Crear tablero organizativo'}
-                            </button>
-                            <Link
-                                to="/"
-                                className="rounded-full border border-line px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-white/5"
-                            >
-                                Volver al panel de acceso
-                            </Link>
-                        </div>
-                    </section>
+                    <EmptyWorkspaceNotice
+                        isClassroomWorkspace={isClassroomWorkspace}
+                        canCreateBoard={canCreateBoardInWorkspace}
+                        onCreateBoard={() => {
+                            if (!canCreateBoardInWorkspace) return;
+                            setCreateBoardPreset(null);
+                            setCreateBoardDialogOpen(true);
+                        }}
+                    />
                 )}
 
                 {currentBoard && (
                     <div className={`flex items-start ${compactEmbed ? 'gap-4 flex-col' : 'flex-row'}`}>
 
-                        {/* ── Área principal: Kanban — se oculta cuando hay panel activo ── */}
+                        {/* ── Área principal: Kanban — se oculta (en xl) cuando hay un panel
+                            lateral activo para dejarle todo el ancho; la tira de iconos
+                            conserva el botón «Kanban» para volver ── */}
                         <div className={compactEmbed
                             ? ''
-                            : `flex-1 min-w-0 overflow-x-auto transition-all duration-200${activeSidePanel ? ' hidden' : ''}`
+                            : `flex-1 min-w-0 overflow-x-auto transition-all duration-200${activeSidePanel ? ' xl:hidden' : ''}`
                         }>
                             <section className={`rounded-2xl border border-lme-border bg-lme-surface-alt/65 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.18)] sm:p-5 xl:p-6 ${compactEmbed ? 'pasos-board-embed-shell' : ''}`}>
                                 {!compactEmbed && (
-                                    <div className="mb-3">
-                                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-sub">
+                                    <div className="mb-3 border-b-2 border-ink pb-3">
+                                        <p className="plate-mono font-semibold text-fisico">
                                             {isClassroomWorkspace ? 'Kanban de aula' : currentBoard.contextType === 'team' ? 'Kanban de equipo' : 'Kanban de organización'}
                                         </p>
                                         <h2 className="mt-1 text-xl font-black text-ink truncate">
@@ -1100,96 +831,31 @@ function BoardView() {
                         </div>
 
                         {/* ── Sidebar: panel expandido + tira de iconos ── */}
-                        {!compactEmbed && (() => {
-                            const isTeamBoard = currentBoard.contextType === 'team' && isProUser && !isClassroomWorkspace;
-                            const sidebarPanels: SidebarPanelDef[] = isClassroomWorkspace
-                                ? CLASSROOM_SIDEBAR_PANELS.map((p) => ({ ...p, available: true }))
-                                : ORG_SIDEBAR_PANELS.map((p) => ({
-                                    ...p,
-                                    available: p.key === 'workspace_context' || isTeamBoard,
-                                }));
-
-                            const activeDef = sidebarPanels.find((p) => p.key === activeSidePanel);
-
-                            const renderPanelContent = () => {
-                                if (!activeSidePanel) return null;
-                                if (isClassroomWorkspace) {
-                                    if (activeSidePanel === 'quick_create') {
-                                        return (
-                                            <ClassroomQuickCreate
-                                                columns={columns}
-                                                disabled={isReadOnlyBoard || !currentBoard}
-                                                onCreate={handleQuickCreateTask}
-                                            />
-                                        );
-                                    }
-                                    return (
-                                        <BoardInsightsPanel
-                                            board={currentBoard}
-                                            shareCode={shareCode ?? existingShare?.code ?? null}
-                                            shareSource={shareCode ? shareSource : (existingShare ? 'local' : shareSource)}
-                                            shareExpiresAt={shareExpiresAt ?? existingShare?.expiresAt ?? null}
-                                            proSyncState={proSyncState}
-                                            lastProSyncAt={lastProSyncAt}
-                                            lastProSyncError={lastProSyncError}
-                                            remoteInsights={remoteInsights}
-                                            remoteInsightsLoading={remoteInsightsLoading}
-                                            remoteInsightsError={remoteInsightsError}
-                                            onSelectLearner={setSelectedLearnerKey}
-                                            panelPreferences={{
-                                                teacher_summary: workspacePanelPreferences.teacher_summary,
-                                                teacher_share_sync: workspacePanelPreferences.teacher_share_sync,
-                                                teacher_recent_activity: workspacePanelPreferences.teacher_recent_activity,
-                                                teacher_learners: workspacePanelPreferences.teacher_learners,
-                                            }}
-                                            onUpdatePanelPreference={setWorkspacePanelPreference}
-                                        />
-                                    );
-                                }
-                                if (activeSidePanel === 'workspace_context') {
-                                    return (
-                                        <WorkspaceContextBar
-                                            allowPersonalWorkspace={false}
-                                            onRequestCreateBoard={(boardType) => {
-                                                if (!canCreateBoardInWorkspace) return;
-                                                setCreateBoardPreset(boardType ?? null);
-                                                setCreateBoardDialogOpen(true);
-                                            }}
-                                        />
-                                    );
-                                }
-                                if (activeSidePanel === 'team_coordination') return <TeamCoordinationPanel board={currentBoard} />;
-                                if (activeSidePanel === 'team_meeting') return <TeamMeetingPanel board={currentBoard} readOnly={isReadOnlyBoard} />;
-                                if (activeSidePanel === 'team_activity') return <TeamActivityPanel board={currentBoard} readOnly={isReadOnlyBoard} />;
-                                return null;
-                            };
-
-                            return (
-                                <>
-                                    {/* Panel expandido */}
-                                    {activeSidePanel && activeDef && (
-                                        <aside className="pasos-sidebar hidden xl:flex flex-col flex-1 min-w-0 border-l border-lme-border/50 overflow-y-auto animate-in slide-in-from-right-4 duration-200" style={{ maxHeight: 'calc(100vh - 5rem)' }}>
-                                            <div className="flex items-center px-4 py-3 border-b border-lme-border/50 shrink-0">
-                                                <div>
-                                                    <p className="text-xs font-bold text-ink">{activeDef.label}</p>
-                                                    <p className="text-[11px] text-sub mt-0.5 leading-4">{activeDef.help}</p>
-                                                </div>
-                                            </div>
-                                            <div className="p-4 flex flex-col gap-4">
-                                                {renderPanelContent()}
-                                            </div>
-                                        </aside>
-                                    )}
-                                    {/* Tira de iconos */}
-                                    <SidebarIconStrip
-                                        panels={sidebarPanels}
-                                        activePanel={activeSidePanel}
-                                        onToggle={(key) => setActiveSidePanel(activeSidePanel === key ? null : key)}
-                                        onShowKanban={() => setActiveSidePanel(null)}
-                                    />
-                                </>
-                            );
-                        })()}
+                        {!compactEmbed && (
+                            <BoardSidebar
+                                board={currentBoard}
+                                isProUser={isProUser}
+                                isClassroomWorkspace={isClassroomWorkspace}
+                                isReadOnlyBoard={isReadOnlyBoard}
+                                canCreateBoardInWorkspace={canCreateBoardInWorkspace}
+                                columns={columns}
+                                activePanel={activeSidePanel}
+                                onChangePanel={setActiveSidePanel}
+                                onQuickCreateTask={handleQuickCreateTask}
+                                onRequestCreateBoard={(boardType) => {
+                                    setCreateBoardPreset(boardType ?? null);
+                                    setCreateBoardDialogOpen(true);
+                                }}
+                                onSelectLearner={setSelectedLearnerKey}
+                                shareCode={shareCode}
+                                shareSource={shareSource}
+                                shareExpiresAt={shareExpiresAt}
+                                existingShare={existingShare}
+                                remoteInsights={remoteInsights}
+                                remoteInsightsLoading={remoteInsightsLoading}
+                                remoteInsightsError={remoteInsightsError}
+                            />
+                        )}
                     </div>
                 )}
             </main>
@@ -1201,163 +867,42 @@ function BoardView() {
             {/* Confetti animation */}
             {ConfettiComponent}
 
-            {/* Undo Delete Toast */}
+            {/* Aviso de deshacer borrado */}
             {showUndo && lastDeleted && (
-                <div className="fixed bottom-6 right-6 z-dropdown-backdrop bg-lme-surface-alt border border-lme-border shadow-2xl rounded-xl px-4 py-3 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
-                    <div>
-                        <p className="text-sm text-ink font-medium">Tarea eliminada</p>
-                        <p className="text-xs text-sub truncate max-w-[220px]">{lastDeleted.task.title}</p>
-                    </div>
-                    <button
-                        onClick={() => {
-                            restoreDeletedTask(lastDeleted.task.id);
-                            setShowUndo(false);
-                            if (undoTimeoutRef.current) {
-                                window.clearTimeout(undoTimeoutRef.current);
-                                undoTimeoutRef.current = null;
-                            }
-                        }}
-                        className="px-3 py-1.5 text-sm font-bold bg-mint/20 text-mint rounded-lg hover:bg-mint/30 transition-colors"
-                    >
-                        Deshacer
-                    </button>
-                </div>
+                <UndoDeleteToast
+                    lastDeleted={lastDeleted}
+                    onUndo={() => {
+                        restoreDeletedTask(lastDeleted.task.id);
+                        setShowUndo(false);
+                        if (undoTimeoutRef.current) {
+                            window.clearTimeout(undoTimeoutRef.current);
+                            undoTimeoutRef.current = null;
+                        }
+                    }}
+                />
             )}
 
-            {/* Trash Modal */}
+            {/* Papelera del tablero */}
             {showTrash && (
-                <div className="fixed inset-0 z-dropdown flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="glass-panel p-6 rounded-2xl max-w-lg w-full mx-4 animate-scale-in">
-                        <div className="flex items-start justify-between mb-4">
-                            <div>
-                                <h2 className="text-lg font-bold text-ink">Papelera del tablero</h2>
-                                <p className="text-xs text-sub">Recupera tareas eliminadas recientemente.</p>
-                            </div>
-                            <button onClick={() => setShowTrash(false)} className="text-sub hover:text-ink">
-                                ✕
-                            </button>
-                        </div>
-
-                        {deletedForBoard.length === 0 ? (
-                            <div className="text-sm text-sub bg-black/20 p-4 rounded-xl text-center">
-                                No hay tareas para recuperar.
-                            </div>
-                        ) : (
-                            <div className="space-y-2 max-h-72 overflow-y-auto">
-                                {deletedForBoard.slice().reverse().map(entry => (
-                                    <div
-                                        key={entry.task.id}
-                                        className="flex items-center justify-between gap-3 bg-lme-surface p-3 rounded-xl border border-lme-border"
-                                    >
-                                        <div className="min-w-0">
-                                            <p className="text-sm text-ink font-medium truncate">{entry.task.title}</p>
-                                            <p className="text-xs text-sub">
-                                                Eliminada: {new Date(entry.deletedAt).toLocaleString()}
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={() => restoreDeletedTask(entry.task.id)}
-                                            className="px-3 py-1.5 text-xs font-bold bg-sky/20 text-sky rounded-lg hover:bg-sky/30 transition-colors"
-                                        >
-                                            Restaurar
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        <button
-                            onClick={() => setShowTrash(false)}
-                            className="w-full mt-4 py-2 text-sub hover:text-ink text-sm transition-colors"
-                        >
-                            Cerrar
-                        </button>
-                    </div>
-                </div>
+                <BoardTrashModal
+                    entries={deletedForBoard}
+                    onRestore={restoreDeletedTask}
+                    onClose={() => setShowTrash(false)}
+                />
             )}
 
-            {/* Share Modal */}
+            {/* Modal de compartir */}
             {showShareModal && (
-                <div className="fixed inset-0 z-dropdown flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="glass-panel p-8 rounded-2xl max-w-md w-full mx-4 animate-scale-in">
-                        <div className="text-center mb-6">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-mint/20 flex items-center justify-center">
-                                <Share2 className="w-8 h-8 text-mint" />
-                            </div>
-                            <h2 className="text-xl font-bold text-ink mb-2">Compartir Tablero</h2>
-                            <p className="text-sub text-sm">
-                                {isSharing
-                                    ? 'Preparando el enlace compartido...'
-                                    : shareError
-                                        ? 'No hemos podido generar el enlace compartido.'
-                                        : shareSource === 'pro'
-                                            ? 'Este enlace ya se resuelve mediante backend y funciona entre dispositivos.'
-                                            : 'Beta local: este código solo debe considerarse operativo en el mismo navegador o dispositivo.'}
-                            </p>
-                        </div>
-
-                        {/* Code display */}
-                        <div className="bg-lme-surface rounded-xl p-4 mb-4">
-                            <p className="text-xs text-sub mb-2 text-center">Código de acceso</p>
-                            <div className="text-3xl font-mono font-bold text-mint text-center tracking-widest">
-                                {isSharing ? '...' : shareCode ?? '----'}
-                            </div>
-                        </div>
-
-                        {shareError && (
-                            <div className="mb-4 p-3 rounded-lg border border-lme-danger/30 bg-lme-danger/10 text-sm text-lme-danger/80">
-                                {shareError}
-                            </div>
-                        )}
-
-                        {shareExpiresAt && (
-                            <div className="mb-4 p-3 rounded-lg bg-black/20 text-xs text-sub">
-                                Disponible hasta: {new Date(shareExpiresAt).toLocaleString()}
-                            </div>
-                        )}
-
-                        {/* Copy button */}
-                        <button
-                            onClick={handleCopyCode}
-                            disabled={!shareCode || isSharing || Boolean(shareError)}
-                            className={`w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all
-                                      ${codeCopied
-                                    ? 'bg-mint text-bg0'
-                                    : 'bg-lme-surface border border-lme-border text-ink hover:bg-white/5'}
-                                      disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                            {codeCopied ? (
-                                <>
-                                    <Check className="w-5 h-5" />
-                                    ¡Enlace copiado!
-                                </>
-                            ) : (
-                                <>
-                                    <Copy className="w-5 h-5" />
-                                    Copiar enlace de acceso
-                                </>
-                            )}
-                        </button>
-
-                        {/* Direct URL */}
-                        <div className="mt-4 p-3 bg-black/20 rounded-lg">
-                            <p className="text-xs text-sub mb-1">
-                                {shareSource === 'pro' ? 'Enlace de acceso sincronizado:' : 'Enlace de acceso beta local:'}
-                            </p>
-                            <p className="text-xs font-mono text-sky break-all">
-                                {shareCode ? `${window.location.origin}/codigo?code=${shareCode}` : 'Pendiente de generar'}
-                            </p>
-                        </div>
-
-                        {/* Close button */}
-                        <button
-                            onClick={() => setShowShareModal(false)}
-                            className="w-full mt-4 py-2 text-sub hover:text-ink text-sm transition-colors"
-                        >
-                            Cerrar
-                        </button>
-                    </div>
-                </div>
+                <BoardShareModal
+                    isSharing={isSharing}
+                    shareCode={shareCode}
+                    shareError={shareError}
+                    shareSource={shareSource}
+                    shareExpiresAt={shareExpiresAt}
+                    codeCopied={codeCopied}
+                    onCopy={handleCopyCode}
+                    onClose={() => setShowShareModal(false)}
+                />
             )}
             {/* AI Wizard Modal */}
             {showAIWizard && (

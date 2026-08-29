@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, CalendarRange, ChevronLeft, ChevronRight, Network, Users } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CalendarRange, ChevronLeft, ChevronRight, Download, Network, Users } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ViewNavHeader } from '../components/ViewNavHeader';
 import { getApiErrorMessage, getTimelineOverview, type ProTimelineOverviewResponse } from '../services/pasosApi';
@@ -76,6 +76,10 @@ function buildHorizon(anchorDate: Date, days = 21): Date[] {
     });
 }
 
+function sameDay(a: Date, b: Date): boolean {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
 function findBarWindow(item: TimelineItem, horizon: Date[]): { startIndex: number; span: number } | null {
     const startAt = item.startAt ? new Date(item.startAt) : item.endAt ? new Date(item.endAt) : null;
     const endAt = item.endAt ? new Date(item.endAt) : startAt;
@@ -108,36 +112,85 @@ function findBarWindow(item: TimelineItem, horizon: Date[]): { startIndex: numbe
 
 function alertTone(alert: TimelineAlert): string {
     return alert.severity === 'critical'
-        ? 'border-lme-danger/30 bg-lme-danger/10 text-lme-danger/70'
-        : 'border-lme-warning/30 bg-lme-warning/10 text-lme-warning/85';
+        ? 'border-lme-danger/40 bg-lme-danger/10 text-lme-danger'
+        : 'border-lme-warning/40 bg-lme-warning/10 text-ink';
 }
 
+/** Color de barra según estado, en la paleta de Los Cinco Mundos. */
 function barTone(item: TimelineItem): string {
-    if (item.isDelayed) return 'bg-lme-danger/70';
-    if (item.isBlocked) return 'bg-lme-warning/70';
-    if (item.isMilestone) return 'bg-sky/80';
-    if (item.isCompleted) return 'bg-mint/70';
-    return 'bg-vio/70';
+    if (item.isDelayed) return 'bg-fisico text-white';
+    if (item.isBlocked) return 'bg-social text-ink';
+    if (item.isMilestone) return 'bg-mental text-white';
+    if (item.isCompleted) return 'bg-emocional text-white';
+    return 'bg-interior text-white';
+}
+
+function itemStatusLabel(item: TimelineItem): string {
+    if (item.isBlocked) return 'Bloqueada';
+    if (item.isDelayed) return 'Retrasada';
+    if (item.isMilestone) return 'Hito';
+    if (item.isCompleted) return 'Completada';
+    return 'En curso';
+}
+
+/** Exporta el cronograma como CSV (con BOM para que Excel respete los acentos). */
+function exportTimelineCsv(overview: TimelineOverview): void {
+    const header = ['Tablero', 'Tarea', 'Responsable', 'Esfuerzo', 'Inicio', 'Fin', 'Estado'];
+    const rows = overview.items.map((item) => [
+        item.boardTitle,
+        item.title,
+        item.ownerLabel || '',
+        String(item.effortPoints),
+        item.startAt ? new Date(item.startAt).toLocaleDateString() : '',
+        item.endAt ? new Date(item.endAt).toLocaleDateString() : '',
+        itemStatusLabel(item),
+    ]);
+    const csv = [header, ...rows]
+        .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pasos-cronograma-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
 }
 
 function renderCapacityCard(capacity: TimelineCapacity) {
     return (
-        <article key={capacity.ownerLabel} className="rounded-2xl border border-line bg-black/20 p-4">
+        <article key={capacity.ownerLabel} className="rounded-lg border border-lme-border bg-lme-background p-4">
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <p className="text-sm font-bold text-ink">{capacity.ownerLabel}</p>
-                    <p className="mt-1 text-xs text-sub">{capacity.taskCount} tarea(s)</p>
+                    <p className="mt-1 font-mono text-[11px] text-sub">{capacity.taskCount} tarea(s)</p>
                 </div>
-                <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-ink">
+                <span className="rounded border border-lme-border px-2 py-0.5 font-mono text-[11px] font-semibold text-ink">
                     {capacity.effortPoints} pts
                 </span>
             </div>
-            <p className="mt-3 text-xs text-sub">
+            <p className="mt-3 font-mono text-[11px] text-sub">
                 Bloqueadas: {capacity.blockedCount} · Retrasadas: {capacity.delayedCount}
             </p>
         </article>
     );
 }
+
+/** Botón de segmento estilo lámina (activo = tinta sólida). */
+function SegButton({ active, onClick, disabled, children }: { active: boolean; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${active ? 'bg-ink text-lme-background' : 'border border-line text-sub hover:border-ink hover:text-ink'}`}
+        >
+            {children}
+        </button>
+    );
+}
+
+const GRID_COLS = 'grid-cols-[18rem_repeat(21,minmax(3rem,1fr))]';
 
 export default function TimelineView() {
     const navigate = useNavigate();
@@ -240,275 +293,215 @@ export default function TimelineView() {
         return Array.from(groups.values());
     }, [boards, overview?.items]);
 
+    const openItemBoard = (item: TimelineItem, board: Board | null) => {
+        setActiveBoard(item.boardId);
+        navigate(getBoardWorkspacePath(board ?? boards.find((c) => c.id === item.boardId) ?? null));
+    };
+
+    function DayGridHeader() {
+        return (
+            <div className={`mb-3 grid ${GRID_COLS} gap-2 font-mono text-[11px] font-bold uppercase tracking-wide text-sub`}>
+                <div className="px-3 py-2">Item</div>
+                {horizon.map((day) => (
+                    <div key={day.toISOString()} className={`px-1 py-2 text-center ${sameDay(day, new Date()) ? 'font-black text-fisico' : day.getDay() === 1 ? 'text-mental' : ''}`}>
+                        {day.toLocaleDateString('es', { day: '2-digit', month: 'short' })}
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    function BarTrack({ item, board }: { item: TimelineItem; board: Board | null }) {
+        const window = findBarWindow(item, horizon);
+        return (
+            <div className="relative col-span-21 grid grid-cols-[repeat(21,minmax(3rem,1fr))] rounded-lg border border-lme-border bg-lme-background px-1 py-3">
+                {horizon.map((day) => (
+                    <div key={day.toISOString()} className={`border-l border-lme-border/40 first:border-l-0 ${sameDay(day, new Date()) ? 'bg-fisico/5' : ''}`} />
+                ))}
+                {window && (
+                    <button
+                        type="button"
+                        onClick={() => openItemBoard(item, board)}
+                        className={`absolute top-1/2 h-8 -translate-y-1/2 truncate rounded px-3 text-left text-xs font-semibold shadow-sm ${barTone(item)}`}
+                        style={{
+                            left: `calc(${(window.startIndex / horizon.length) * 100}% + 0.25rem)`,
+                            width: `calc(${(window.span / horizon.length) * 100}% - 0.5rem)`,
+                        }}
+                        title={`${item.title} — ${itemStatusLabel(item)}`}
+                    >
+                        <span className="truncate">{item.title}</span>
+                    </button>
+                )}
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-lme-background text-lme-text">
             <ViewNavHeader breadcrumb="Cronograma" workspaceMode={workspaceMode} />
             <div className="px-4 pb-6 sm:px-6 xl:px-8">
-            <div className="mx-auto max-w-[1500px]">
-                <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                    <div>
+                <div className="mx-auto max-w-[1500px]">
+                    <header className="mb-6 border-b-2 border-ink pb-5 pt-2">
                         <Link to={getWorkspaceRootPath(workspaceMode)} className="inline-flex items-center gap-2 text-sub transition-colors hover:text-ink">
                             <ArrowLeft className="h-4 w-4" />
                             Volver al tablero
                         </Link>
-                        <p className="mt-4 text-xs font-bold uppercase tracking-wide text-sub">Cronograma y diagrama Gantt</p>
+                        <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-fisico">Cronograma y diagrama Gantt</p>
                         <h1 className="mt-1 text-3xl font-black text-ink">Cronograma del workspace</h1>
-                        <p className="mt-2 text-sm text-sub">
+                        <p className="mt-2 max-w-2xl text-sm text-sub">
                             Visualiza dependencias, hitos, capacidad y retrasos sin salir de Pasos.
                         </p>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setViewMode('timeline')}
-                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${viewMode === 'timeline'
-                                ? 'border-sky/30 bg-sky/10 text-sky'
-                                : 'border-line text-sub hover:bg-white/5 hover:text-ink'
-                                }`}
-                        >
-                            <Network className="mr-2 inline h-4 w-4" />
-                            Timeline
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setViewMode('gantt')}
-                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${viewMode === 'gantt'
-                                ? 'border-mint/30 bg-mint/10 text-mint'
-                                : 'border-line text-sub hover:bg-white/5 hover:text-ink'
-                                }`}
-                        >
-                            <CalendarRange className="mr-2 inline h-4 w-4" />
-                            Gantt
-                        </button>
-                    </div>
-                </header>
+                    </header>
 
-                <div className="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-                    <section className="rounded-3xl border border-lme-border bg-lme-surface-alt/80 p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex flex-wrap gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setScopeType('personal')}
-                                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${scopeType === 'personal'
-                                        ? 'border-sky/30 bg-sky/10 text-sky'
-                                        : 'border-line text-sub hover:bg-white/5 hover:text-ink'
-                                        }`}
-                                >
-                                    {workspaceMode === 'organization' ? 'Claustro / centro' : 'Personal'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setScopeType('team')}
-                                    disabled={!currentTeamId}
-                                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${scopeType === 'team'
-                                        ? 'border-mint/30 bg-mint/10 text-mint'
-                                        : 'border-line text-sub hover:bg-white/5 hover:text-ink'
-                                        } disabled:cursor-not-allowed disabled:opacity-50`}
-                                >
-                                    <Users className="mr-2 inline h-4 w-4" />
-                                    Equipo
-                                </button>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setAnchorDate((current) => new Date(current.getTime() - 7 * 24 * 60 * 60 * 1000))}
-                                    className="rounded-full border border-line p-2 text-sub transition-colors hover:bg-white/5 hover:text-ink"
-                                >
-                                    <ChevronLeft className="h-4 w-4" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setAnchorDate(new Date())}
-                                    className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-sub transition-colors hover:bg-white/5 hover:text-ink"
-                                >
-                                    Hoy
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setAnchorDate((current) => new Date(current.getTime() + 7 * 24 * 60 * 60 * 1000))}
-                                    className="rounded-full border border-line p-2 text-sub transition-colors hover:bg-white/5 hover:text-ink"
-                                >
-                                    <ChevronRight className="h-4 w-4" />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap gap-3">
-                            <select
-                                value={boardFilter}
-                                onChange={(event) => setBoardFilter(event.target.value)}
-                                className="rounded-2xl border border-line bg-black/20 px-4 py-3 text-sm text-ink focus:border-sky focus:outline-none"
-                            >
-                                <option value="all">Todos los tableros visibles</option>
-                                {scopedBoards.map((board) => (
-                                    <option key={board.id} value={board.id}>{board.title}</option>
-                                ))}
-                            </select>
-                            {overview && (
-                                <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-ink">
-                                    {overview.itemCount} item(s) · {overview.blockedCount} bloqueadas · {overview.delayedCount} retrasadas
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                        <section className="rounded-2xl border border-lme-border bg-lme-surface p-4 sm:p-5">
+                            {/* Barra de control */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <SegButton active={viewMode === 'timeline'} onClick={() => setViewMode('timeline')}><Network className="h-4 w-4" /> Timeline</SegButton>
+                                    <SegButton active={viewMode === 'gantt'} onClick={() => setViewMode('gantt')}><CalendarRange className="h-4 w-4" /> Gantt</SegButton>
+                                    <span className="mx-1 h-6 w-px bg-line" />
+                                    <SegButton active={scopeType === 'personal'} onClick={() => setScopeType('personal')}>{workspaceMode === 'organization' ? 'Claustro' : 'Personal'}</SegButton>
+                                    <SegButton active={scopeType === 'team'} onClick={() => setScopeType('team')} disabled={!currentTeamId}><Users className="h-4 w-4" /> Equipo</SegButton>
                                 </div>
-                            )}
-                        </div>
-
-                        {loading && (
-                            <div className="mt-4 rounded-2xl border border-line bg-black/20 p-4 text-sm text-sub">
-                                Cargando cronograma...
+                                <div className="flex items-center gap-2">
+                                    <button type="button" onClick={() => setAnchorDate((current) => new Date(current.getTime() - 7 * 24 * 60 * 60 * 1000))} className="rounded-lg border border-line p-2 text-sub transition-colors hover:border-ink hover:text-ink"><ChevronLeft className="h-4 w-4" /></button>
+                                    <button type="button" onClick={() => setAnchorDate(new Date())} className="rounded-lg border border-line px-3 py-2 text-sm font-semibold text-sub transition-colors hover:border-ink hover:text-ink">Hoy</button>
+                                    <button type="button" onClick={() => setAnchorDate((current) => new Date(current.getTime() + 7 * 24 * 60 * 60 * 1000))} className="rounded-lg border border-line p-2 text-sub transition-colors hover:border-ink hover:text-ink"><ChevronRight className="h-4 w-4" /></button>
+                                </div>
                             </div>
-                        )}
 
-                        {error && (
-                            <div className="mt-4 rounded-2xl border border-lme-danger/30 bg-lme-danger/10 p-4 text-sm text-lme-danger/70">
-                                {error}
-                            </div>
-                        )}
-
-                        {!loading && !error && overview && (
-                            <div className="mt-4 overflow-x-auto">
-                                <div className="min-w-[900px]">
-                                {/* Cabecera de días — dentro del mismo scroll para que se alinee */}
-                                <div className="mb-3 grid grid-cols-[18rem_repeat(21,minmax(3rem,1fr))] gap-2 text-xs font-bold uppercase tracking-wide text-sub">
-                                    <div className="rounded-xl px-3 py-2">Item</div>
-                                    {horizon.map((day) => (
-                                        <div key={day.toISOString()} className={`rounded-xl px-1 py-2 text-center ${day.getDay() === 1 ? 'text-sky' : ''}`}>
-                                            {day.toLocaleDateString('es', { day: '2-digit', month: 'short' })}
-                                        </div>
+                            <div className="mt-4 flex flex-wrap items-center gap-3">
+                                <select
+                                    value={boardFilter}
+                                    onChange={(event) => setBoardFilter(event.target.value)}
+                                    className="rounded-lg border border-lme-border bg-lme-background px-4 py-2.5 text-sm text-ink focus:border-mental focus:outline-none"
+                                >
+                                    <option value="all">Todos los tableros visibles</option>
+                                    {scopedBoards.map((board) => (
+                                        <option key={board.id} value={board.id}>{board.title}</option>
                                     ))}
-                                </div>
+                                </select>
+                                {overview && (
+                                    <span className="font-mono text-[11px] uppercase tracking-wide text-sub">
+                                        {overview.itemCount} item(s) · {overview.blockedCount} bloqueadas · {overview.delayedCount} retrasadas
+                                    </span>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => overview && exportTimelineCsv(overview)}
+                                    disabled={!overview || overview.items.length === 0}
+                                    className="ml-auto inline-flex items-center gap-2 rounded-lg border border-lme-border px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    <Download className="h-4 w-4" /> Exportar CSV
+                                </button>
+                            </div>
 
-                                <div className="space-y-4">
-                                        {viewMode === 'timeline' ? (
-                                            groupedByBoard.map((group) => (
-                                                <section key={group.items[0]?.boardId ?? 'empty'} className="rounded-3xl border border-line bg-black/20 p-4">
-                                                    <div className="mb-3 flex items-center justify-between gap-3">
-                                                        <div>
-                                                            <h2 className="text-lg font-bold text-ink">{group.items[0]?.boardTitle ?? 'Sin tablero'}</h2>
-                                                            <p className="text-sm text-sub">{group.items.length} tarjeta(s) con señal temporal</p>
+                            {loading && (
+                                <div className="mt-4 rounded-2xl border border-lme-border bg-lme-background p-4 text-sm text-sub">Cargando cronograma…</div>
+                            )}
+                            {error && (
+                                <div className="mt-4 rounded-2xl border border-lme-danger/40 bg-lme-danger/10 p-4 text-sm text-lme-danger/85">{error}</div>
+                            )}
+
+                            {!loading && !error && overview && (
+                                <div className="mt-4 overflow-x-auto">
+                                    <div className="min-w-[900px]">
+                                        <DayGridHeader />
+                                        <div className="space-y-4">
+                                            {viewMode === 'timeline' ? (
+                                                groupedByBoard.length === 0 ? (
+                                                    <div className="rounded-2xl border border-dashed border-lme-border p-8 text-center text-sm text-sub">
+                                                        No hay tarjetas con fecha en este alcance. Añade fechas a las tareas para verlas en el cronograma.
+                                                    </div>
+                                                ) : groupedByBoard.map((group) => (
+                                                    <section key={group.items[0]?.boardId ?? 'empty'} className="rounded-2xl border border-lme-border bg-lme-background p-4">
+                                                        <div className="mb-3 border-b border-lme-border pb-2">
+                                                            <h2 className="text-base font-bold text-ink">{group.items[0]?.boardTitle ?? 'Sin tablero'}</h2>
+                                                            <p className="font-mono text-[11px] text-sub">{group.items.length} tarjeta(s) con señal temporal</p>
                                                         </div>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        {group.items.map((item) => {
-                                                            const window = findBarWindow(item, horizon);
-                                                            return (
-                                                                <div key={`${item.boardId}-${item.taskId}`} className="grid grid-cols-[18rem_repeat(21,minmax(3rem,1fr))] gap-2">
-                                                                    <div className="rounded-2xl border border-line bg-black/20 px-3 py-3">
+                                                        <div className="space-y-2">
+                                                            {group.items.map((item) => (
+                                                                <div key={`${item.boardId}-${item.taskId}`} className={`grid ${GRID_COLS} gap-2`}>
+                                                                    <div className="rounded-lg border border-lme-border bg-lme-surface px-3 py-3">
                                                                         <p className="text-sm font-semibold text-ink">{item.title}</p>
-                                                                        <p className="mt-1 text-xs text-sub">
-                                                                            {item.ownerLabel || 'Sin responsable'} · {item.effortPoints} pts
-                                                                        </p>
+                                                                        <p className="mt-1 font-mono text-[11px] text-sub">{item.ownerLabel || 'Sin responsable'} · {item.effortPoints} pts</p>
                                                                     </div>
-                                                                    <div className="relative col-span-21 grid grid-cols-[repeat(21,minmax(3rem,1fr))] rounded-2xl border border-line bg-black/10 px-1 py-3">
-                                                                        {horizon.map((day) => (
-                                                                            <div key={day.toISOString()} className="border-l border-white/5 first:border-l-0" />
-                                                                        ))}
-                                                                        {window && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => {
-                                                                                    setActiveBoard(item.boardId);
-                                                                                    navigate(getBoardWorkspacePath(group.board));
-                                                                                }}
-                                                                                className={`absolute top-1/2 h-8 -translate-y-1/2 rounded-full px-3 text-left text-xs font-semibold text-white shadow-lg ${barTone(item)}`}
-                                                                                style={{
-                                                                                    left: `calc(${(window.startIndex / horizon.length) * 100}% + 0.25rem)`,
-                                                                                    width: `calc(${(window.span / horizon.length) * 100}% - 0.5rem)`,
-                                                                                }}
-                                                                            >
-                                                                                <span className="truncate">{item.title}</span>
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
+                                                                    <BarTrack item={item} board={group.board} />
                                                                 </div>
-                                                            );
-                                                        })}
+                                                            ))}
+                                                        </div>
+                                                    </section>
+                                                ))
+                                            ) : (
+                                                overview.items.length === 0 ? (
+                                                    <div className="rounded-2xl border border-dashed border-lme-border p-8 text-center text-sm text-sub">
+                                                        No hay tarjetas con fecha en este alcance.
                                                     </div>
-                                                </section>
-                                            ))
-                                        ) : (
-                                            overview.items.map((item) => {
-                                                const window = findBarWindow(item, horizon);
-                                                return (
-                                                    <div key={`${item.boardId}-${item.taskId}`} className="grid grid-cols-[18rem_repeat(21,minmax(3rem,1fr))] gap-2 rounded-3xl border border-line bg-black/20 p-3">
+                                                ) : overview.items.map((item) => (
+                                                    <div key={`${item.boardId}-${item.taskId}`} className={`grid ${GRID_COLS} gap-2 rounded-2xl border border-lme-border bg-lme-background p-3`}>
                                                         <div>
                                                             <p className="text-sm font-bold text-ink">{item.title}</p>
-                                                            <p className="mt-1 text-xs text-sub">
-                                                                {item.boardTitle} · {item.ownerLabel || 'Sin responsable'} · {item.effortPoints} pts
-                                                            </p>
-                                                            <p className="mt-2 text-[11px] text-sub">
-                                                                {item.isBlocked ? 'Bloqueada' : item.isDelayed ? 'Retrasada' : item.isMilestone ? 'Hito' : 'En curso'}
-                                                            </p>
+                                                            <p className="mt-1 font-mono text-[11px] text-sub">{item.boardTitle} · {item.ownerLabel || 'Sin responsable'} · {item.effortPoints} pts</p>
+                                                            <p className="mt-2 font-mono text-[10px] uppercase tracking-wide text-sub">{itemStatusLabel(item)}</p>
                                                         </div>
-                                                        <div className="relative col-span-21 grid grid-cols-[repeat(21,minmax(3rem,1fr))] rounded-2xl border border-line bg-black/10 px-1 py-3">
-                                                            {horizon.map((day) => (
-                                                                <div key={day.toISOString()} className="border-l border-white/5 first:border-l-0" />
-                                                            ))}
-                                                            {window && (
-                                                                <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setActiveBoard(item.boardId);
-                                                                    const targetBoard = boards.find((candidate) => candidate.id === item.boardId) ?? null;
-                                                                    navigate(getBoardWorkspacePath(targetBoard));
-                                                                }}
-                                                                    className={`absolute top-1/2 h-9 -translate-y-1/2 rounded-full px-3 text-left text-xs font-semibold text-white shadow-lg ${barTone(item)}`}
-                                                                    style={{
-                                                                        left: `calc(${(window.startIndex / horizon.length) * 100}% + 0.25rem)`,
-                                                                        width: `calc(${(window.span / horizon.length) * 100}% - 0.5rem)`,
-                                                                    }}
-                                                                >
-                                                                    <span className="truncate">{item.title}</span>
-                                                                </button>
-                                                            )}
-                                                        </div>
+                                                        <BarTrack item={item} board={null} />
                                                     </div>
-                                                );
-                                            })
-                                        )}
+                                                ))
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-                    </section>
-
-                    <aside className="space-y-4">
-                        <section className="rounded-3xl border border-lme-border bg-lme-surface-alt/80 p-4">
-                            <div className="flex items-center gap-2">
-                                <AlertTriangle className="h-5 w-5 text-lme-warning" />
-                                <h2 className="text-lg font-bold text-ink">Hitos en riesgo</h2>
-                            </div>
-                            <div className="mt-4 space-y-3">
-                                {overview?.alerts.length ? (
-                                    overview.alerts.slice(0, 8).map((alert) => (
-                                        <article key={`${alert.taskId}-${alert.alertType}`} className={`rounded-2xl border p-4 ${alertTone(alert)}`}>
-                                            <p className="text-sm font-bold">{alert.title}</p>
-                                            <p className="mt-1 text-xs opacity-90">{alert.boardTitle}</p>
-                                            <p className="mt-3 text-sm">{alert.message}</p>
-                                        </article>
-                                    ))
-                                ) : (
-                                    <div className="rounded-2xl border border-dashed border-line p-4 text-sm text-sub">
-                                        No hay alertas activas en este alcance.
-                                    </div>
-                                )}
-                            </div>
+                            )}
                         </section>
 
-                        <section className="rounded-3xl border border-lme-border bg-lme-surface-alt/80 p-4">
-                            <h2 className="text-lg font-bold text-ink">Capacidad</h2>
-                            <p className="mt-2 text-sm text-sub">Carga viva por responsable para detectar sobreasignación.</p>
-                            <div className="mt-4 space-y-3">
-                                {overview?.capacities.length ? overview.capacities.map(renderCapacityCard) : (
-                                    <div className="rounded-2xl border border-dashed border-line p-4 text-sm text-sub">
-                                        Añade responsable y esfuerzo en las tarjetas para ver la carga del equipo.
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-                    </aside>
+                        <aside className="space-y-4">
+                            <section className="rounded-2xl border border-lme-border bg-lme-surface p-4">
+                                <div className="flex items-center gap-2 border-b border-line pb-2">
+                                    <AlertTriangle className="h-4 w-4 text-social" />
+                                    <h2 className="text-sm font-bold text-ink">Hitos en riesgo</h2>
+                                </div>
+                                <div className="mt-3 space-y-2.5">
+                                    {overview?.alerts.length ? (
+                                        overview.alerts.slice(0, 8).map((alert) => (
+                                            <article key={`${alert.taskId}-${alert.alertType}`} className={`rounded-lg border p-3 ${alertTone(alert)}`}>
+                                                <p className="text-sm font-bold">{alert.title}</p>
+                                                <p className="mt-0.5 text-xs opacity-90">{alert.boardTitle}</p>
+                                                <p className="mt-2 text-sm">{alert.message}</p>
+                                            </article>
+                                        ))
+                                    ) : (
+                                        <div className="rounded-lg border border-dashed border-lme-border p-4 text-sm text-sub">No hay alertas activas en este alcance.</div>
+                                    )}
+                                </div>
+                            </section>
+
+                            <section className="rounded-2xl border border-lme-border bg-lme-surface p-4">
+                                <div className="border-b border-line pb-2">
+                                    <h2 className="text-sm font-bold text-ink">Capacidad</h2>
+                                </div>
+                                <p className="mt-2 text-xs text-sub">Carga viva por responsable para detectar sobreasignación.</p>
+                                <div className="mt-3 space-y-2.5">
+                                    {overview?.capacities.length ? overview.capacities.map(renderCapacityCard) : (
+                                        <div className="rounded-lg border border-dashed border-lme-border p-4 text-sm text-sub">Añade responsable y esfuerzo en las tarjetas para ver la carga del equipo.</div>
+                                    )}
+                                </div>
+                            </section>
+
+                            {/* Leyenda de colores */}
+                            <section className="rounded-2xl border border-lme-border bg-lme-surface p-4">
+                                <h2 className="text-sm font-bold text-ink">Leyenda</h2>
+                                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-sub">
+                                    <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-interior" /> En curso</span>
+                                    <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-emocional" /> Completada</span>
+                                    <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-mental" /> Hito</span>
+                                    <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-social" /> Bloqueada</span>
+                                    <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-fisico" /> Retrasada</span>
+                                </div>
+                            </section>
+                        </aside>
+                    </div>
                 </div>
-            </div>
             </div>
         </div>
     );

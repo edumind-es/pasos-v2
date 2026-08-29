@@ -57,3 +57,6 @@ run/
 *.conf
 *.bak
 *.new
+
+# public/vendor lo carga index.html: se versiona
+!public/vendor/

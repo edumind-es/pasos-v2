@@ -56,7 +56,7 @@ export function BoardColumn({
 
     return (
         <div ref={setNodeRef} className="w-[min(20rem,calc(100vw-3rem))] sm:w-80 glass-card p-4 flex flex-col max-h-[calc(100vh-160px)] transition-all">
-            <div className="flex items-center justify-between mb-4 group/col">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-line group/col">
                 <button
                     type="button"
                     className="font-semibold text-ink truncate flex-1 mr-2 text-left cursor-pointer"
@@ -67,7 +67,7 @@ export function BoardColumn({
                     }}
                 >
                     {column.title}
-                    <span className="ml-2 text-xs text-sub font-normal">({tasks.length})</span>
+                    <span className="ml-2 plate-mono text-sub">({tasks.length})</span>
                 </button>
                 <div className="flex gap-1 opacity-100 transition-opacity">
                     {!readOnly && <button type="button" onClick={() => onEditColumn(column.id, column.title)} className="p-1 hover:text-sky" aria-label={`Editar columna ${column.title}`}><Edit2 className="w-3.5 h-3.5" /></button>}

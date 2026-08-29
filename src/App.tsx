@@ -36,7 +36,6 @@ const Login = lazy(() => import('./pages/Login'));
 const InstallPWA = lazy(() => import('./components/InstallPWA').then((module) => ({ default: module.InstallPWA })));
 const FAQ = lazy(() => import('./components/FAQ').then((module) => ({ default: module.FAQ })));
 const EDUmindFooter = lazy(() => import('./components/EDUmindFooter'));
-const EinkModeSelector = lazy(() => import('./components/EinkModeSelector').then((module) => ({ default: module.EinkModeSelector })));
 
 function isBoardEmbed(location: ReturnType<typeof useLocation>): boolean {
   const params = new URLSearchParams(location.search);
@@ -128,6 +127,8 @@ function EmbedModeManager() {
 function App() {
   return (
     <BrowserRouter>
+      {/* Barra de mundos a sangre — firma visual de la lámina */}
+      <div className="plate-top" aria-hidden="true"><i /><i /><i /><i /><i /></div>
       <EmbedModeManager />
       <VisualModeManager />
       <ProSessionManager />
@@ -205,11 +206,10 @@ function App() {
         </Routes>
 
         <InstallPWA />
-        <EinkModeSelector />
         <FAQ />
         <EDUmindFooter
           appName="Pasos"
-          version="2.1.0"
+          version={__APP_VERSION__}
           versionStage="Stable"
           feedbackUrl="https://github.com/edumind-es/pasos/issues"
           homeHref="/"

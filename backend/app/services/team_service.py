@@ -183,3 +183,14 @@ def remove_team_member(
 
     membership.status = "inactive"
     db.commit()
+
+
+def archive_team(db: Session, organization_id: str, team_id: str, current_user: User) -> None:
+    """Borrado seguro del equipo: lo archiva (recuperable). Permiso: owner del equipo o admin/leadership de la org."""
+    team = _get_team(db, team_id)
+    if team.organization_id != organization_id:
+        raise ApiError(404, "team_not_found", "Team not found")
+    _require_team_manager(db, team, current_user)
+
+    team.is_archived = True
+    db.commit()

@@ -49,10 +49,10 @@ export function ViewNavHeader({ breadcrumb, workspaceMode }: Props) {
                 </Link>
 
                 {/* Tabs Aula / Claustro */}
-                <div className="flex items-center bg-black/20 border border-line rounded-full p-0.5 shrink-0">
+                <div className="flex items-center bg-black/20 border border-line rounded-lg p-0.5 shrink-0">
                     <Link
                         to="/aula"
-                        className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full transition-colors ${
+                        className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
                             workspaceMode === 'classroom' ? 'bg-sky/20 text-sky' : 'text-sub hover:text-ink'
                         }`}
                     >
@@ -62,7 +62,7 @@ export function ViewNavHeader({ breadcrumb, workspaceMode }: Props) {
                     {isProUser && (
                         <Link
                             to="/organizacion"
-                            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-full transition-colors ${
+                            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
                                 workspaceMode === 'organization' ? 'bg-mint/20 text-mint' : 'text-sub hover:text-ink'
                             }`}
                         >
@@ -87,7 +87,7 @@ export function ViewNavHeader({ breadcrumb, workspaceMode }: Props) {
                     type="button"
                     onClick={() => setVisualMode(visualMode === 'eink' ? 'edumind' : 'eink')}
                     title={visualMode === 'eink' ? 'Modo EDUmind (color)' : 'Modo E-Ink'}
-                    className="w-9 h-9 rounded-full border border-line bg-black/20 flex items-center justify-center hover:bg-white/5 transition-colors"
+                    className="w-9 h-9 rounded-lg border border-line bg-black/20 flex items-center justify-center hover:bg-white/5 transition-colors"
                 >
                     <Palette className="w-4 h-4 text-sub" />
                 </button>
@@ -98,7 +98,7 @@ export function ViewNavHeader({ breadcrumb, workspaceMode }: Props) {
                         type="button"
                         title={lastProSyncError}
                         onClick={handleAvatarClick}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-lme-danger/40 bg-lme-danger/10 text-lme-danger/80 text-xs font-semibold hover:bg-lme-danger/20 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-lme-danger/40 bg-lme-danger/10 text-lme-danger/80 text-xs font-semibold hover:bg-lme-danger/20 transition-colors"
                     >
                         <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                         Sin sync

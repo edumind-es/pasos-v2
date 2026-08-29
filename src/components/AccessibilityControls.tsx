@@ -19,8 +19,33 @@
 import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Type, Palette, Plus, Minus } from 'lucide-react';
+import { useStore } from '../store/boardStore';
 
-type FontFamily = 'comic' | 'opendyslexic' | 'nunito' | 'system';
+type FontFamily = 'outfit' | 'comic' | 'opendyslexic' | 'nunito' | 'system';
+type EinkMode = 'normal' | 'night' | 'dark';
+
+const EINK_MODE_OPTIONS: Array<{ value: EinkMode; label: string; help: string }> = [
+    { value: 'normal', label: 'Día', help: 'Máximo contraste' },
+    { value: 'night', label: 'Noche', help: 'Menos luz azul' },
+    { value: 'dark', label: 'Oscuro', help: 'Fondo oscuro' },
+];
+
+function getStoredEinkMode(): EinkMode {
+    const saved = localStorage.getItem('eink-mode');
+    return saved === 'night' || saved === 'dark' || saved === 'normal' ? saved : 'normal';
+}
+
+// Aplica el contraste E-Ink; VisualModeManager lo restaura al cargar la app
+function applyEinkMode(mode: EinkMode) {
+    const html = document.documentElement;
+    html.classList.remove('eink-night', 'eink-dark');
+    if (mode === 'night') {
+        html.classList.add('eink-night');
+    } else if (mode === 'dark') {
+        html.classList.add('eink-dark');
+    }
+    localStorage.setItem('eink-mode', mode);
+}
 
 interface AccessibilitySettings {
     fontSize: number; // 14-30px
@@ -28,6 +53,7 @@ interface AccessibilitySettings {
 }
 
 const FONT_OPTIONS = {
+    outfit: { label: 'Outfit (lámina)', family: '"Outfit", "Segoe UI", system-ui, sans-serif' },
     comic: { label: 'Comic Neue', family: '"Comic Neue", "Comic Sans MS", cursive' },
     opendyslexic: { label: 'OpenDyslexic', family: '"OpenDyslexic", sans-serif' },
     nunito: { label: 'Nunito', family: '"Nunito", sans-serif' },
@@ -39,7 +65,7 @@ function getStoredAccessibilitySettings(): AccessibilitySettings {
     if (!saved) {
         return {
             fontSize: 18,
-            fontFamily: 'comic'
+            fontFamily: 'outfit'
         };
     }
 
@@ -48,12 +74,14 @@ function getStoredAccessibilitySettings(): AccessibilitySettings {
     } catch {
         return {
             fontSize: 18,
-            fontFamily: 'comic'
+            fontFamily: 'outfit'
         };
     }
 }
 
 export function AccessibilityControls() {
+    const { visualMode, setVisualMode } = useStore();
+    const [einkMode, setEinkMode] = useState<EinkMode>(() => getStoredEinkMode());
     const [settings, setSettings] = useState<AccessibilitySettings>(() => getStoredAccessibilitySettings());
     const [showMenu, setShowMenu] = useState(false);
     const [pos, setPos] = useState<{ top: number; right: number }>({ top: 68, right: 8 });
@@ -94,8 +122,8 @@ export function AccessibilityControls() {
             <button
                 ref={btnRef}
                 onClick={handleOpen}
-                className="flex items-center gap-2 px-4 py-2 rounded-full border border-line hover:bg-white/5 transition-colors text-sm font-medium"
-                title="Opciones de accesibilidad"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-line hover:bg-white/5 transition-colors text-sm font-medium"
+                title="Apariencia y accesibilidad"
             >
                 <Type className="w-4 h-4" />
             </button>
@@ -104,9 +132,68 @@ export function AccessibilityControls() {
                 <>
                     <div className="fixed inset-0" style={{ zIndex: 490 }} onClick={() => setShowMenu(false)} />
                     <div
-                        className="fixed w-80 bg-lme-surface-alt border border-lme-border rounded-xl shadow-2xl p-4 animate-scale-in"
+                        className="fixed w-80 max-h-[calc(100vh-6rem)] overflow-y-auto bg-lme-surface-alt border border-lme-border rounded-xl shadow-2xl p-4 animate-scale-in"
                         style={{ top: pos.top, right: pos.right, zIndex: 500 }}
                     >
+                        {/* Modo visual */}
+                        <div className="mb-4">
+                            <label className="text-xs font-bold text-sub uppercase mb-2 block flex items-center gap-2">
+                                <Palette className="w-3 h-3" />
+                                Modo visual
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button
+                                    onClick={() => setVisualMode('eink')}
+                                    className={`px-3 py-2 rounded-lg text-sm transition-all ${visualMode === 'eink'
+                                        ? 'bg-mint/10 border-2 border-mint text-mint font-bold'
+                                        : 'bg-lme-surface border border-lme-border text-ink hover:bg-white/5'
+                                        }`}
+                                >
+                                    E-Ink
+                                    <span className="block text-xs font-normal text-sub">Tinta electrónica</span>
+                                </button>
+                                <button
+                                    onClick={() => setVisualMode('edumind')}
+                                    className={`px-3 py-2 rounded-lg text-sm transition-all ${visualMode === 'edumind'
+                                        ? 'bg-mint/10 border-2 border-mint text-mint font-bold'
+                                        : 'bg-lme-surface border border-lme-border text-ink hover:bg-white/5'
+                                        }`}
+                                >
+                                    EDUmind
+                                    <span className="block text-xs font-normal text-sub">Color</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Contraste E-Ink */}
+                        {visualMode === 'eink' && (
+                            <div className="mb-4">
+                                <label className="text-xs font-bold text-sub uppercase mb-2 block">
+                                    Contraste
+                                </label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {EINK_MODE_OPTIONS.map(({ value, label, help }) => (
+                                        <button
+                                            key={value}
+                                            onClick={() => {
+                                                setEinkMode(value);
+                                                applyEinkMode(value);
+                                            }}
+                                            title={help}
+                                            className={`px-2 py-2 rounded-lg text-sm transition-all ${einkMode === value
+                                                ? 'bg-mint/10 border-2 border-mint text-mint font-bold'
+                                                : 'bg-lme-surface border border-lme-border text-ink hover:bg-white/5'
+                                                }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <hr className="border-lme-border mb-4" />
+
                         {/* Font Size Control */}
                         <div className="mb-4">
                             <label className="text-xs font-bold text-sub uppercase mb-2 block">

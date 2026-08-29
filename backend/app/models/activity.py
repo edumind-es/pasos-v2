@@ -32,7 +32,6 @@ class ShareLearnerProgress(TimestampMixin, Base):
     share_id: Mapped[str] = mapped_column(ForeignKey("board_shares.id", ondelete="CASCADE"), index=True)
     board_id: Mapped[str] = mapped_column(ForeignKey("boards.id", ondelete="CASCADE"), index=True)
     learner_key: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
-    learner_label: Mapped[str | None] = mapped_column(String(120))
     completed_task_ids: Mapped[list[str]] = mapped_column(SnapshotType, nullable=False, default=list)
     help_task_ids: Mapped[list[str]] = mapped_column(SnapshotType, nullable=False, default=list)
     validated_task_ids: Mapped[list[str]] = mapped_column(SnapshotType, nullable=False, default=list)

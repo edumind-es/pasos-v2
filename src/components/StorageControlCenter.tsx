@@ -9,8 +9,11 @@ import {
     clearStudentProgress,
     getAllStudentProgress,
 } from '../utils/shareCode';
+import { vaciarLibreta } from '../utils/libretaDocente';
 
 const APP_STORAGE_KEY = 'pasos-v2-storage';
+// Se conserva para limpiar el resto de instalaciones anteriores: el
+// alias del alumnado ya no se pide ni se guarda.
 const STUDENT_ALIAS_KEY = 'pasos-student-alias';
 const SHARE_LEARNER_PREFIX = 'pasos-share-learner:';
 const PWA_DISMISS_KEY = 'pwa-install-dismissed';
@@ -96,6 +99,7 @@ export function StorageControlCenter({ onClose }: StorageControlCenterProps) {
             clearSharedBoards();
             clearStudentProgress();
             localStorage.removeItem(STUDENT_ALIAS_KEY);
+            vaciarLibreta();
             Object.keys(localStorage)
                 .filter(key => key.startsWith(SHARE_LEARNER_PREFIX))
                 .forEach(key => localStorage.removeItem(key));
@@ -131,6 +135,7 @@ export function StorageControlCenter({ onClose }: StorageControlCenterProps) {
             clearStudentProgress();
             localStorage.removeItem(APP_STORAGE_KEY);
             localStorage.removeItem(STUDENT_ALIAS_KEY);
+            vaciarLibreta();
             localStorage.removeItem(PWA_DISMISS_KEY);
             Object.keys(localStorage)
                 .filter(key => key.startsWith(SHARE_LEARNER_PREFIX))

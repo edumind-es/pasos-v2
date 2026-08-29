@@ -16,50 +16,59 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useState } from 'react';
-import { Home, X, Monitor, Minimize2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Home, X, Monitor, Minimize2, ChevronRight, ChevronLeft, Play, CheckCircle2, Keyboard } from 'lucide-react';
 import { useBoardStore, useStore } from '../store/boardStore';
 import { Link } from 'react-router-dom';
 import { StudentCard } from '../components/StudentCard';
+import { PresentationTimer, type TimerControl } from '../components/PresentationTimer';
 import { useConfetti } from '../hooks/useConfetti';
 import { AccessibilityControls } from '../components/AccessibilityControls';
-import { VisualModeToggle } from '../components/VisualModeToggle';
 import { getWorkspaceRootPath } from '../utils/workspaceRoutes';
 
-function PresentView() {
-    const { columns, tasks, moveTask } = useBoardStore();
-    const { boards, activeBoardId } = useStore();
-    const [activeTask, setActiveTask] = useState<string | null>(null);
-    const [kioskMode, setKioskMode] = useState(false);
+function isCompletedColumnTitle(title: string): boolean {
+    const t = title.toLowerCase();
+    return t.includes('terminado') || t.includes('hecho') || t.includes('listo');
+}
 
-    // Confetti for completed tasks
+function PresentView() {
+    const { columns, tasks, moveTask, updateTask } = useBoardStore();
+    const { boards, activeBoardId } = useStore();
+    const [focusTaskId, setFocusTaskId] = useState<string | null>(null);
+    const [kioskMode, setKioskMode] = useState(false);
+    const timerControl = useRef<TimerControl | null>(null);
     const { triggerConfetti, ConfettiComponent } = useConfetti();
 
-    // Get current board name
     const currentBoard = boards.find(b => b.id === activeBoardId);
 
-    const taskDetails = activeTask ? tasks.find(t => t.id === activeTask) : null;
+    // Orden de lectura: columnas por orden, tareas dentro de cada columna
+    const orderedColumns = useMemo(() => [...columns].sort((a, b) => a.order - b.order), [columns]);
+    const orderedTasks = useMemo(
+        () => orderedColumns.flatMap((col) => tasks.filter(t => t.columnId === col.id).map(task => ({ task, column: col }))),
+        [orderedColumns, tasks],
+    );
 
-    const handleMove = (taskId: string, currentColId: string, direction: 'next' | 'prev') => {
-        const currentIndex = columns.findIndex(c => c.id === currentColId);
-        if (currentIndex === -1) return;
+    const focusIndex = focusTaskId ? orderedTasks.findIndex(x => x.task.id === focusTaskId) : -1;
+    const focus = focusIndex >= 0 ? orderedTasks[focusIndex] : null;
 
-        const newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
-        if (newIndex >= 0 && newIndex < columns.length) {
-            // Check if moving to completed column
-            const targetColumn = columns[newIndex];
-            const isCompletedColumn = targetColumn.title.toLowerCase().includes('terminado') ||
-                targetColumn.title.toLowerCase().includes('hecho');
-
-            if (isCompletedColumn && direction === 'next') {
-                triggerConfetti();
-            }
-
-            moveTask(taskId, columns[newIndex].id);
-        }
+    const goTo = (index: number) => {
+        const clamped = Math.max(0, Math.min(orderedTasks.length - 1, index));
+        setFocusTaskId(orderedTasks[clamped]?.task.id ?? null);
+    };
+    const startPresentation = () => {
+        if (orderedTasks.length > 0) setFocusTaskId(orderedTasks[0].task.id);
     };
 
-    // Toggle fullscreen for kiosk mode
+    // Avanza la tarea enfocada a la siguiente columna (progreso guiado en clase)
+    const advanceTaskColumn = () => {
+        if (!focus) return;
+        const colIndex = orderedColumns.findIndex(c => c.id === focus.task.columnId);
+        if (colIndex < 0 || colIndex >= orderedColumns.length - 1) return;
+        const target = orderedColumns[colIndex + 1];
+        if (isCompletedColumnTitle(target.title)) triggerConfetti();
+        moveTask(focus.task.id, target.id);
+    };
+
     const toggleKioskMode = () => {
         if (!kioskMode) {
             document.documentElement.requestFullscreen?.();
@@ -69,150 +78,210 @@ function PresentView() {
         setKioskMode(!kioskMode);
     };
 
+    // Navegación por teclado en modo foco
+    useEffect(() => {
+        if (!focus) return undefined;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowRight') { e.preventDefault(); goTo(focusIndex + 1); }
+            else if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(focusIndex - 1); }
+            else if (e.key === ' ') { e.preventDefault(); timerControl.current?.toggle(); }
+            else if (e.key === 'Escape') { setFocusTaskId(null); }
+            else if (e.key.toLowerCase() === 'f') { toggleKioskMode(); }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [focus, focusIndex, orderedTasks.length, kioskMode]);
+
     return (
-        <div className={`min-h-screen bg-lme-background text-lme-text flex flex-col font-sans overflow-hidden ${kioskMode ? 'p-4' : 'px-4 py-6'}`}>
-            {/* Header - Hidden in kiosk mode */}
+        <div className={`flex min-h-screen flex-col bg-lme-background text-lme-text ${kioskMode ? 'p-4' : 'px-4 py-6'}`}>
+            {/* Cabecera — oculta en kiosko */}
             {!kioskMode && (
-                <header className="flex justify-between items-center mb-6 px-4">
-                    <Link to={getWorkspaceRootPath('classroom')} className="flex items-center gap-2 text-sub hover:text-white transition-colors min-h-[56px] px-4 -ml-4 rounded-xl hover:bg-white/5">
-                        <Home className="w-6 h-6" />
-                        <span className="text-sm font-medium">Volver</span>
+                <header className="mb-6 flex items-center justify-between gap-3 border-b-2 border-ink px-2 pb-4">
+                    <Link to={getWorkspaceRootPath('classroom')} className="flex min-h-[48px] items-center gap-2 rounded-lg px-3 text-sub transition-colors hover:bg-white/5 hover:text-ink">
+                        <Home className="h-5 w-5" />
+                        <span className="text-sm font-semibold">Volver</span>
                     </Link>
-
                     <div className="text-center">
-                        <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-mint to-sky">
-                            Modo Presentación
-                        </h1>
-                        {currentBoard && (
-                            <p className="text-sm text-sub">{currentBoard.title}</p>
-                        )}
+                        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-fisico">Presentar</p>
+                        <h1 className="text-xl font-black text-ink">{currentBoard?.title ?? 'Modo presentación'}</h1>
                     </div>
-
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        {orderedTasks.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={startPresentation}
+                                className="flex min-h-[48px] items-center gap-2 rounded-lg bg-ink px-4 text-sm font-bold uppercase tracking-wide text-lme-background transition-colors hover:bg-fisico"
+                            >
+                                <Play className="h-4 w-4 fill-current" />
+                                <span className="hidden sm:inline">Presentar en secuencia</span>
+                            </button>
+                        )}
                         <AccessibilityControls />
-                        <VisualModeToggle />
-                        <button
-                            onClick={toggleKioskMode}
-                            className="flex items-center gap-2 text-sub hover:text-white transition-colors min-h-[56px] px-4 rounded-xl hover:bg-white/5"
-                        >
-                            <Monitor className="w-5 h-5" />
-                            <span className="text-sm font-medium hidden sm:inline">Pantalla Completa</span>
+                        <button onClick={toggleKioskMode} title="Pantalla completa (F)" className="flex min-h-[48px] items-center gap-2 rounded-lg border border-line px-3 text-sub transition-colors hover:bg-white/5 hover:text-ink">
+                            <Monitor className="h-5 w-5" />
+                            <span className="hidden text-sm font-semibold sm:inline">Pantalla completa</span>
                         </button>
                     </div>
                 </header>
             )}
 
-            {/* Kiosk mode exit button - Always visible */}
             {kioskMode && (
-                <button
-                    onClick={toggleKioskMode}
-                    className="fixed top-4 right-4 z-modal p-3 bg-black/50 hover:bg-black/70 rounded-full transition-colors backdrop-blur"
-                >
-                    <Minimize2 className="w-6 h-6 text-white" />
+                <button onClick={toggleKioskMode} title="Salir de pantalla completa" className="fixed right-4 top-4 z-modal rounded-full border border-lme-border bg-lme-surface p-3 shadow-lg transition-colors hover:border-ink">
+                    <Minimize2 className="h-6 w-6 text-ink" />
                 </button>
             )}
 
-            {/* Full Screen Task Focus */}
-            {taskDetails && (
-                <div className="fixed inset-0 z-modal bg-black/90 backdrop-blur flex items-center justify-center p-4 sm:p-8 animate-in zoom-in duration-300">
-                    <button onClick={() => setActiveTask(null)} className="absolute top-4 right-4 sm:top-8 sm:right-8 text-white/50 hover:text-white min-h-[56px] min-w-[56px] flex items-center justify-center bg-white/10 rounded-full">
-                        <X className="w-8 h-8" />
-                    </button>
+            {/* ── Modo foco secuencial ── */}
+            {focus && (
+                <div className="fixed inset-0 z-modal flex flex-col bg-lme-background animate-in fade-in duration-200">
+                    {/* Barra superior del foco: progreso + cerrar */}
+                    <div className="flex items-center justify-between gap-3 border-b border-lme-border px-4 py-3 sm:px-8">
+                        <div className="flex items-center gap-3">
+                            <span className="font-mono text-xs uppercase tracking-wide text-sub">
+                                Tarea {focusIndex + 1} / {orderedTasks.length}
+                            </span>
+                            <span className="rounded border border-lme-border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wide text-ink">
+                                {focus.column.title}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="hidden items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-sub sm:flex">
+                                <Keyboard className="h-3.5 w-3.5" /> ← → navegar · espacio temporizador · F pantalla · Esc salir
+                            </span>
+                            <button onClick={() => setFocusTaskId(null)} title="Salir (Esc)" className="flex h-11 w-11 items-center justify-center rounded-lg border border-lme-border text-sub transition-colors hover:border-ink hover:text-ink">
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
+                    </div>
 
-                    <div className="bg-lme-surface-alt w-full max-w-5xl rounded-3xl border border-lme-border shadow-2xl p-6 sm:p-12 flex flex-col gap-6 sm:gap-8 items-center text-center max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-4xl sm:text-6xl font-black text-ink">{taskDetails.title}</h2>
-                        {(taskDetails.objective || taskDetails.description) && (
-                            <div className="max-w-3xl space-y-3">
-                                {taskDetails.objective && <p className="text-lg sm:text-2xl text-sub">Objetivo: {taskDetails.objective}</p>}
-                                {taskDetails.description && <p className="text-base sm:text-xl text-sub">{taskDetails.description}</p>}
-                                {(taskDetails.supportText || taskDetails.expectedEvidence || taskDetails.nextStep) && (
-                                    <div className="grid gap-3 sm:grid-cols-3 text-left">
-                                        {taskDetails.supportText && <div className="rounded-2xl bg-black/20 p-4 text-sm text-ink"><strong>Ayuda</strong><div className="mt-2 text-sub">{taskDetails.supportText}</div></div>}
-                                        {taskDetails.expectedEvidence && <div className="rounded-2xl bg-black/20 p-4 text-sm text-ink"><strong>Evidencia</strong><div className="mt-2 text-sub">{taskDetails.expectedEvidence}</div></div>}
-                                        {taskDetails.nextStep && <div className="rounded-2xl bg-black/20 p-4 text-sm text-ink"><strong>Siguiente paso</strong><div className="mt-2 text-sub">{taskDetails.nextStep}</div></div>}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                    {/* Contenido de la tarea */}
+                    <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-8">
+                        <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 text-center">
+                            <h2 className="text-4xl font-black leading-tight text-ink sm:text-6xl" style={{ textWrap: 'balance' }}>{focus.task.title}</h2>
 
-                        {/* Giant Pictogram Sequence */}
-                        {(taskDetails.pictograms?.length ?? 0) > 0 && (
-                            <div className="flex flex-wrap justify-center gap-4 sm:gap-8 my-4 sm:my-8">
-                                {taskDetails.pictograms!.map((p, idx) => (
-                                    <div key={idx} className="flex flex-col items-center">
-                                        <div className="relative">
-                                            <span className="absolute -top-4 -left-4 sm:-top-6 sm:-left-6 bg-sky text-white text-xl sm:text-2xl w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold shadow-lg shadow-sky/50">{idx + 1}</span>
-                                            <img src={p.url} className="w-40 h-40 sm:w-64 sm:h-64 object-contain bg-white rounded-2xl p-2 sm:p-4 shadow-xl" alt={p.title} />
+                            {(focus.task.objective || focus.task.description) && (
+                                <div className="max-w-3xl space-y-2">
+                                    {focus.task.objective && <p className="text-lg text-sub sm:text-2xl"><b className="text-ink">Objetivo:</b> {focus.task.objective}</p>}
+                                    {focus.task.description && <p className="text-base text-sub sm:text-xl">{focus.task.description}</p>}
+                                </div>
+                            )}
+
+                            {(focus.task.supportText || focus.task.expectedEvidence || focus.task.nextStep) && (
+                                <div className="grid w-full max-w-3xl gap-3 text-left sm:grid-cols-3">
+                                    {focus.task.supportText && <div className="rounded-2xl border border-lme-border bg-lme-surface p-4 text-sm"><strong className="text-ink">Ayuda</strong><div className="mt-2 text-sub">{focus.task.supportText}</div></div>}
+                                    {focus.task.expectedEvidence && <div className="rounded-2xl border border-lme-border bg-lme-surface p-4 text-sm"><strong className="text-ink">Evidencia</strong><div className="mt-2 text-sub">{focus.task.expectedEvidence}</div></div>}
+                                    {focus.task.nextStep && <div className="rounded-2xl border border-lme-border bg-lme-surface p-4 text-sm"><strong className="text-ink">Siguiente paso</strong><div className="mt-2 text-sub">{focus.task.nextStep}</div></div>}
+                                </div>
+                            )}
+
+                            {/* Secuencia de pictogramas gigante */}
+                            {(focus.task.pictograms?.length ?? 0) > 0 && (
+                                <div className="my-2 flex flex-wrap justify-center gap-4 sm:gap-8">
+                                    {focus.task.pictograms!.map((p, idx) => (
+                                        <div key={idx} className="flex flex-col items-center">
+                                            <div className="relative">
+                                                <span className="absolute -left-3 -top-3 flex h-8 w-8 items-center justify-center rounded-full bg-ink text-lg font-bold text-lme-background shadow-lg sm:h-11 sm:w-11 sm:text-2xl">{idx + 1}</span>
+                                                <img src={p.url} className="h-40 w-40 rounded-2xl border border-lme-border bg-white object-contain p-2 shadow-xl sm:h-60 sm:w-60 sm:p-4" alt={p.title} />
+                                            </div>
+                                            <span className="mt-2 rounded-lg bg-lme-surface px-4 py-1 text-xl font-medium text-ink sm:mt-4 sm:text-3xl">{p.title}</span>
                                         </div>
-                                        <span className="mt-2 sm:mt-4 text-xl sm:text-3xl font-medium text-ink bg-black/30 px-4 sm:px-6 py-1 sm:py-2 rounded-xl">{p.title}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                    ))}
+                                </div>
+                            )}
 
-                        {/* Big Attachments */}
-                        {taskDetails.attachments && taskDetails.attachments.length > 0 && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mt-4 sm:mt-8">
-                                {taskDetails.attachments.map(a => (
-                                    <div key={a.id} className="aspect-video bg-black rounded-xl overflow-hidden shadow-lg border border-line relative group">
-                                        {a.kind === 'video' || (a.kind === 'link' && (a.url.includes('youtube') || a.url.includes('youtu.be'))) ? (
-                                            <iframe
-                                                src={a.url.replace('watch?v=', 'embed/').replace('youtu.be/', 'www.youtube.com/embed/')}
-                                                className="w-full h-full"
-                                                allowFullScreen
-                                            />
-                                        ) : (
-                                            <img src={a.url} className="w-full h-full object-cover opacity-50" alt="" />
-                                        )}
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:bg-black/20 transition-colors">
-                                            <a href={a.url} target="_blank" rel="noopener noreferrer" className="bg-white/10 backdrop-blur px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold pointer-events-auto hover:bg-white/20 border border-white/20 min-h-[44px] flex items-center">Abrir Recurso</a>
-                                        </div>
-                                    </div>
-                                ))}
+                            {/* Temporizador */}
+                            <div className="w-full max-w-2xl">
+                                <PresentationTimer
+                                    key={focus.task.id}
+                                    task={focus.task}
+                                    size="lg"
+                                    controlRef={timerControl}
+                                    onUpdateDuration={(seconds) => updateTask(focus.task.id, { durationSeconds: seconds })}
+                                />
                             </div>
-                        )}
+
+                            {/* Adjuntos grandes */}
+                            {focus.task.attachments && focus.task.attachments.length > 0 && (
+                                <div className="grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2">
+                                    {focus.task.attachments.map(a => (
+                                        <div key={a.id} className="relative aspect-video overflow-hidden rounded-xl border border-lme-border bg-black">
+                                            {a.kind === 'video' || (a.kind === 'link' && (a.url.includes('youtube') || a.url.includes('youtu.be'))) ? (
+                                                <iframe src={a.url.replace('watch?v=', 'embed/').replace('youtu.be/', 'www.youtube.com/embed/')} className="h-full w-full" allowFullScreen />
+                                            ) : (
+                                                <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex h-full w-full items-center justify-center bg-lme-surface font-bold text-ink hover:bg-white/5">Abrir recurso</a>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Barra de navegación inferior */}
+                    <div className="flex items-center justify-between gap-3 border-t border-lme-border px-4 py-3 sm:px-8">
+                        <button
+                            type="button"
+                            onClick={() => goTo(focusIndex - 1)}
+                            disabled={focusIndex <= 0}
+                            className="flex min-h-[52px] items-center gap-2 rounded-lg border border-lme-border px-4 text-sm font-bold text-ink transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            <ChevronLeft className="h-5 w-5" /> Anterior
+                        </button>
+                        <button
+                            type="button"
+                            onClick={advanceTaskColumn}
+                            className="flex min-h-[52px] items-center gap-2 rounded-lg border border-emocional bg-emocional/10 px-4 text-sm font-bold text-emocional transition-colors hover:bg-emocional/20"
+                        >
+                            <CheckCircle2 className="h-5 w-5" /> Mover a siguiente fase
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => goTo(focusIndex + 1)}
+                            disabled={focusIndex >= orderedTasks.length - 1}
+                            className="flex min-h-[52px] items-center gap-2 rounded-lg bg-ink px-4 text-sm font-bold uppercase tracking-wide text-lme-background transition-colors hover:bg-fisico disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            Siguiente <ChevronRight className="h-5 w-5" />
+                        </button>
                     </div>
                 </div>
             )}
 
-            {/* Columns - Responsive layout */}
-            <div className={`flex-1 flex gap-4 sm:gap-8 h-full overflow-x-auto pb-4 snap-x ${kioskMode ? 'px-4' : ''}`}>
-                {columns.map((col, colIndex) => {
+            {/* ── Vista general del tablero (columnas) — oculta durante el modo foco ── */}
+            {!focus && (
+            <div className={`flex h-full flex-1 gap-4 overflow-x-auto pb-4 sm:gap-6 ${kioskMode ? 'px-2' : ''}`}>
+                {orderedColumns.map((col, colIndex) => {
                     const colTasks = tasks.filter(t => t.columnId === col.id);
-                    const isCompletedColumn = col.title.toLowerCase().includes('terminado') ||
-                        col.title.toLowerCase().includes('hecho');
+                    const isDone = isCompletedColumnTitle(col.title);
                     return (
-                        <div
-                            key={col.id}
-                            className={`
-                                min-w-[320px] sm:min-w-[400px] lg:min-w-[480px]
-                                glass-card rounded-3xl flex flex-col snap-center
-                                relative
-                                ${isCompletedColumn ? 'border-green-500/30 bg-green-500/5' : ''}
-                            `}
-                        >
-                            <div className={`p-4 sm:p-6 border-b border-lme-border ${isCompletedColumn ? 'bg-green-500/10' : ''}`}>
-                                <h2 className="text-2xl sm:text-3xl font-bold text-center text-ink flex items-center justify-center gap-2">
+                        <div key={col.id} className={`flex min-w-[300px] flex-col rounded-2xl border bg-lme-surface sm:min-w-[380px] lg:min-w-[440px] ${isDone ? 'border-emocional/50' : 'border-lme-border'}`}>
+                            <div className={`border-b-2 p-4 sm:p-5 ${isDone ? 'border-emocional' : 'border-ink'}`}>
+                                <h2 className="flex items-center justify-center gap-2 text-center text-2xl font-black text-ink sm:text-3xl">
                                     {col.title}
-                                    <span className="text-base font-normal text-sub">({colTasks.length})</span>
+                                    <span className="font-mono text-base font-normal text-sub">({colTasks.length})</span>
                                 </h2>
                             </div>
-
-                            <div className="flex-1 p-4 sm:p-6 space-y-4 overflow-y-auto">
+                            <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
                                 {colTasks.map(task => (
                                     <StudentCard
                                         key={task.id}
                                         task={task}
-                                        onMove={(direction) => handleMove(task.id, col.id, direction)}
-                                        onExpand={() => setActiveTask(task.id)}
+                                        onMove={(direction) => {
+                                            const newIndex = direction === 'next' ? colIndex + 1 : colIndex - 1;
+                                            if (newIndex >= 0 && newIndex < orderedColumns.length) {
+                                                const target = orderedColumns[newIndex];
+                                                if (isCompletedColumnTitle(target.title) && direction === 'next') triggerConfetti();
+                                                moveTask(task.id, target.id);
+                                            }
+                                        }}
+                                        onExpand={() => setFocusTaskId(task.id)}
                                         canMovePrev={colIndex > 0}
-                                        canMoveNext={colIndex < columns.length - 1}
-                                        isCompletedColumn={isCompletedColumn}
+                                        canMoveNext={colIndex < orderedColumns.length - 1}
+                                        isCompletedColumn={isDone}
                                     />
                                 ))}
-
                                 {colTasks.length === 0 && (
-                                    <div className="flex-1 min-h-[140px] border-2 border-dashed border-white/10 rounded-2xl flex items-center justify-center text-sub text-lg italic">
+                                    <div className="flex min-h-[140px] flex-1 items-center justify-center rounded-2xl border-2 border-dashed border-lme-border text-lg italic text-sub">
                                         Sin tareas
                                     </div>
                                 )}
@@ -221,15 +290,16 @@ function PresentView() {
                     );
                 })}
             </div>
+            )}
 
-            {/* Swipe hint for touch users */}
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 text-sub text-sm bg-black/50 backdrop-blur px-6 py-3 rounded-full pointer-events-none opacity-60">
-                <ChevronLeft className="w-4 h-4" />
-                <span>Desliza las tareas para moverlas</span>
-                <ChevronRight className="w-4 h-4" />
-            </div>
+            {/* Pista de interacción */}
+            {!focus && orderedTasks.length > 0 && (
+                <div className="pointer-events-none fixed bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-full border border-lme-border bg-lme-surface px-5 py-2.5 text-sm text-sub opacity-90 shadow-lg">
+                    <Play className="h-4 w-4 text-fisico" />
+                    <span>Toca una tarea para ampliarla o usa «Presentar en secuencia»</span>
+                </div>
+            )}
 
-            {/* Confetti */}
             {ConfettiComponent}
         </div>
     );

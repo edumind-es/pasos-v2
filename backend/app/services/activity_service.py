@@ -115,7 +115,6 @@ def _learner_insight_response(
     feedback_entries = [_feedback_entry_response(entry) for entry in learner.feedback_entries]
     return BoardLearnerInsightResponse(
         learner_key=learner.learner_key,
-        learner_label=learner.learner_label,
         share_code=share_code,
         completed_count=completed_count,
         total_tasks=total_tasks,
@@ -160,7 +159,6 @@ def record_share_activity(
             share_id=share.id,
             board_id=board.id,
             learner_key=payload.learner_key,
-            learner_label=payload.learner_label,
             completed_task_ids=completed_task_ids,
             help_task_ids=help_task_ids,
             validated_task_ids=[],
@@ -189,8 +187,6 @@ def record_share_activity(
         )
         learner.last_event_type = payload.event_type
         learner.last_access_at = last_access_at
-        if payload.learner_label:
-            learner.learner_label = payload.learner_label
 
         completed_task_ids = learner.completed_task_ids
         help_task_ids = learner.help_task_ids
@@ -203,7 +199,9 @@ def record_share_activity(
         event_type=payload.event_type,
         actor_type="student",
         actor_id=payload.learner_key,
-        actor_label=payload.learner_label,
+        # El alumnado no tiene nombre en el servidor: se identifica por su
+        # clave aleatoria y el apodo se calcula en el navegador.
+        actor_label=None,
         metadata={
             "share_code": share.code,
             "completed_count": len(completed_task_ids),
@@ -218,7 +216,6 @@ def record_share_activity(
     return ShareActivityResponse(
         code=share.code,
         learner_key=payload.learner_key,
-        learner_label=learner.learner_label,
         completed_task_ids=completed_task_ids,
         help_task_ids=learner.help_task_ids,
         validated_task_ids=learner.validated_task_ids,
@@ -362,6 +359,36 @@ def purge_old_activity_events(db: Session, *, days: int = 90) -> int:
     )
     db.commit()
     return result.rowcount
+
+
+def purge_expired_learner_progress(db: Session, *, grace_days: int = 30) -> int:
+    """Elimina el progreso del alumnado de códigos ya caducados o revocados.
+
+    El progreso de un alumno (alias, tareas hechas, peticiones de ayuda,
+    evidencias y feedback) es un dato personal de un menor, aunque la clave
+    que lo identifica sea un UUID aleatorio: el propio alumno escribe su
+    nombre en el alias. El RGPD obliga a conservarlo solo mientras haga
+    falta, y deja de hacer falta cuando el código con el que se generó ya
+    no sirve para entrar.
+
+    `grace_days` es el margen para que el docente pueda revisar y exportar
+    después de que el código caduque. Pasado ese plazo, se borra.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(days=grace_days)
+    caducados = select(BoardShare.id).where(
+        (BoardShare.expires_at < cutoff)
+        | ((BoardShare.revoked_at.is_not(None)) & (BoardShare.revoked_at < cutoff))
+    )
+    result = db.execute(
+        delete(ShareLearnerProgress).where(ShareLearnerProgress.share_id.in_(caducados))
+    )
+    db.commit()
+    return result.rowcount
+
+
+def count_learner_progress(db: Session) -> int:
+    """Cuenta las filas de progreso del alumnado almacenadas."""
+    return db.scalar(select(func.count()).select_from(ShareLearnerProgress)) or 0
 
 
 def count_activity_events(db: Session) -> int:

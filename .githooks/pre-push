@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Antes de cada push: lo mismo que el CI del frontend, incluido el build
+# (que es quien comprueba los tipos).
+set -e
+
+# Vaciar la lista de refs que git manda por stdin: un gancho que no la lee
+# deja a git escribiendo en una tuberia que nadie atiende. Es la practica
+# recomendada para los ganchos de pre-push.
+cat > /dev/null || true
+
+cd "$(git rev-parse --show-toplevel)"
+npm run lint
+npx vitest run
+npm run build

@@ -148,7 +148,6 @@ def test_record_share_activity_updates_progress_and_insights(db_session: Session
         created.code,
         ShareActivityRequest(
             learner_key="learner-1",
-            learner_label="Marta",
             event_type="progress_updated",
             completed_task_ids=["task-1"],
             help_task_ids=["task-2"],
@@ -168,7 +167,6 @@ def test_record_share_activity_updates_progress_and_insights(db_session: Session
         created.code,
         ShareActivityRequest(
             learner_key="learner-1",
-            learner_label="Marta",
             event_type="board_completed",
             completed_task_ids=["task-1", "task-2"],
             last_access_at=datetime.now(timezone.utc),
@@ -183,7 +181,7 @@ def test_record_share_activity_updates_progress_and_insights(db_session: Session
     assert insights.learner_count == 1
     assert insights.completed_learners == 1
     assert insights.share_access_count == 1
-    assert insights.learners[0].learner_label == "Marta"
+    assert insights.learners[0].learner_key == "learner-1"
     assert insights.learners[0].progress_percent == 100
     assert insights.learners[0].help_task_count == 0
     assert insights.learners[0].evidence_count == 1
@@ -211,7 +209,6 @@ def test_teacher_can_add_feedback_and_validate_task(db_session: Session) -> None
         created.code,
         ShareActivityRequest(
             learner_key="learner-3",
-            learner_label="Lucia",
             event_type="progress_updated",
             completed_task_ids=["task-1"],
             help_task_ids=["task-1"],
@@ -240,7 +237,6 @@ def test_teacher_can_add_feedback_and_validate_task(db_session: Session) -> None
         ),
     )
 
-    assert learner.learner_label == "Lucia"
     assert learner.validated_task_ids == ["task-1"]
     assert learner.help_task_ids == []
     assert learner.feedback_count == 1
@@ -267,7 +263,6 @@ def test_record_share_activity_rejects_expired_share(db_session: Session) -> Non
             created.code,
             ShareActivityRequest(
                 learner_key="learner-2",
-                learner_label="Equipo azul",
                 event_type="accessed",
                 completed_task_ids=[],
                 last_access_at=datetime.now(timezone.utc),

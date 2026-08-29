@@ -23,6 +23,8 @@ test.beforeEach(async ({ page }) => {
 test('flujo RC: docente puede crear tablero desde plantilla y exportar informe', async ({ page }) => {
     await loginExpress(page);
 
+    // Plantillas vive en el menú de desbordamiento (Más opciones → Herramientas)
+    await page.getByTitle('Más opciones').click();
     await page.getByRole('button', { name: 'Plantillas' }).click();
     await expect(page.getByRole('dialog', { name: 'Plantillas y reutilización' })).toBeVisible();
 
@@ -32,7 +34,8 @@ test('flujo RC: docente puede crear tablero desde plantilla y exportar informe',
     await expect(page.getByRole('button', { name: 'Rutina de la mañana' })).toBeVisible();
 
     const reportDownload = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Informe' }).click();
+    await page.getByTitle('Más opciones').click();
+    await page.getByRole('button', { name: 'Informe pedagógico' }).click();
     const report = await reportDownload;
     expect(report.suggestedFilename()).toContain('pasos-informe');
     expect(report.suggestedFilename()).toContain('.html');
@@ -51,7 +54,7 @@ test('flujo RC: docente puede abrir centro de datos', async ({ page }) => {
 test('flujo RC: alumno accede con codigo local compartido', async ({ page }) => {
     await loginExpress(page);
 
-    await page.getByRole('button', { name: 'Compartir' }).click();
+    await page.getByRole('button', { name: 'Compartir', exact: true }).click();
     const shareDialog = page.getByRole('heading', { name: 'Compartir Tablero' });
     await expect(shareDialog).toBeVisible();
 
@@ -61,13 +64,19 @@ test('flujo RC: alumno accede con codigo local compartido', async ({ page }) => 
     const studentPage = await page.context().newPage();
     await prepareLocalApp(studentPage);
     await studentPage.goto(`/codigo?code=${codeValue}`);
-    await studentPage.getByLabel('Alias del alumno/a (opcional)').fill('Marta');
+
+    // No se le pide el nombre. Antes habia un campo "Alias del alumno/a" cuyo
+    // marcador de posicion era "Ej. Marta": invitaba al alumno a escribir su
+    // nombre, que acababa guardado en el servidor. Ya no existe.
+    await expect(studentPage.getByLabel(/alias/i)).toHaveCount(0);
+    await expect(studentPage.locator('main')).not.toContainText('Marta');
+
     await studentPage.getByRole('button', { name: 'Acceder' }).click();
 
     await expect(studentPage).toHaveURL(new RegExp(`/compartir/${codeValue}`));
     await expect(studentPage.getByText(`Código: ${codeValue}`)).toBeVisible();
-    await expect(studentPage.getByText('Alumno:')).toBeVisible();
-    await expect(studentPage.getByText('Marta')).toBeVisible();
+    // El alumno ve un apodo calculado de su clave aleatoria: "Eres Lince 7".
+    await expect(studentPage.getByText(/Eres/)).toBeVisible();
     await expect(studentPage.locator('main')).toContainText('Sin tareas');
 
     await studentPage.close();

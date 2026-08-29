@@ -182,7 +182,6 @@ class ShareResolveResponse(StrictModel):
 
 class ShareActivityRequest(StrictModel):
     learner_key: StrictId
-    learner_label: StrictName | None = None
     event_type: Literal["accessed", "progress_updated", "board_completed"]
     completed_task_ids: list[StrictId] = Field(default_factory=list)
     help_task_ids: list[StrictId] = Field(default_factory=list)
@@ -193,7 +192,6 @@ class ShareActivityRequest(StrictModel):
 class ShareActivityResponse(StrictModel):
     code: str
     learner_key: StrictId
-    learner_label: str | None = None
     completed_task_ids: list[StrictId]
     help_task_ids: list[StrictId] = Field(default_factory=list)
     validated_task_ids: list[StrictId] = Field(default_factory=list)
@@ -215,7 +213,6 @@ class BoardActivityEventResponse(StrictModel):
 
 class BoardLearnerInsightResponse(StrictModel):
     learner_key: StrictId
-    learner_label: str | None = None
     share_code: str | None = None
     completed_count: int = Field(ge=0)
     total_tasks: int = Field(ge=0)

@@ -156,7 +156,7 @@ export function BoardToolbar({
 
             {/* Task count badge */}
             <div className="flex items-center gap-2 text-sm text-sub">
-                <span className="bg-mint/20 text-mint px-2 py-0.5 rounded-full font-medium">
+                <span className="bg-mint/20 text-mint px-2 py-0.5 rounded-lg font-medium">
                     {taskCount} tareas
                 </span>
             </div>
@@ -210,7 +210,7 @@ export function BoardToolbar({
                     <Trash2 className="w-4 h-4" />
                     <span>Papelera</span>
                     {trashCount > 0 && (
-                        <span className="bg-lme-danger text-white text-xs px-1.5 py-0.5 rounded-full">
+                        <span className="bg-lme-danger text-white text-xs px-1.5 py-0.5 rounded-lg">
                             {trashCount}
                         </span>
                     )}
