@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { User, ArrowRight, Shield, GraduationCap, Zap, AlertTriangle, Info, CheckCircle, KeyRound } from 'lucide-react';
 import { useStore, type UserRole } from '../store/boardStore';
@@ -59,7 +59,7 @@ export default function Login() {
         navigate(safeNext, { replace: true });
     }, [currentUser, location.search, navigate]);
 
-    const finishProAccess = async (
+    const finishProAccess = useCallback(async (
         authResponse: ProAuthTokenResponse,
         eventType: 'pro_login_success' | 'pro_register_success' | 'pro_sso_login_success',
         targetPath = '/',
@@ -95,7 +95,7 @@ export default function Login() {
                     : 'Se inició una sesión Pro correctamente.',
         });
         navigate(targetPath);
-    };
+    }, [login, createBoard, setActiveBoard, mergeBoardsForOwner, navigate]);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -134,7 +134,7 @@ export default function Login() {
         return () => {
             cancelled = true;
         };
-    }, [location.search]);
+    }, [location.search, finishProAccess]);
 
     const activateWorkspace = (userId: string | undefined, emptyBoardTitle: string) => {
         window.setTimeout(() => {

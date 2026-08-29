@@ -13,6 +13,7 @@ from app.api.v1.dtos import (
 from app.core.deps import DbSession, get_current_user
 from app.models.user import User
 from app.services.organization_service import (
+    archive_organization,
     create_organization,
     create_team,
     list_org_members,
@@ -21,6 +22,7 @@ from app.services.organization_service import (
     remove_org_member,
     update_org_member_role,
 )
+from app.services.team_service import archive_team
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
@@ -59,6 +61,25 @@ def create_team_endpoint(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> TeamResponse:
     return create_team(db, organization_id, current_user, payload)
+
+
+@router.delete("/{organization_id}/teams/{team_id}", status_code=204)
+def archive_team_endpoint(
+    organization_id: str,
+    team_id: str,
+    db: DbSession,
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> None:
+    archive_team(db, organization_id, team_id, current_user)
+
+
+@router.delete("/{organization_id}", status_code=204)
+def archive_organization_endpoint(
+    organization_id: str,
+    db: DbSession,
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> None:
+    archive_organization(db, organization_id, current_user)
 
 
 @router.get("/{organization_id}/members", response_model=list[OrgMembershipResponse])

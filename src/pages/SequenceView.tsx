@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2024-2025 EDUmind - Los Mundos Edufis
- * Author: Luis Vilela Acuna
+ * Author: Luis Vilela Acuña
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by

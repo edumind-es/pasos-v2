@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import type { Task } from '../store/boardStore';
 import type { SupportedBoardType } from '../utils/boardPresets';
-import type { ProBoardInsightsResponse } from '../services/pasosApi';
 
 export interface ColumnDialogState {
     mode: 'create' | 'edit';
@@ -9,6 +8,11 @@ export interface ColumnDialogState {
     columnId?: string;
 }
 
+/**
+ * Estado de UI de la vista de tablero (menús, diálogos, DnD y filtros).
+ * El estado de compartir vive en useShareBoard y el de seguimiento remoto
+ * en useBoardInsights.
+ */
 export function useBoardViewState() {
     // Edición de tareas y DnD
     const [editingTask, setEditingTask] = useState<string | null>(null);
@@ -30,15 +34,6 @@ export function useBoardViewState() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterColor, setFilterColor] = useState<string | null>(null);
 
-    // Compartir tablero
-    const [showShareModal, setShowShareModal] = useState(false);
-    const [shareCode, setShareCode] = useState<string | null>(null);
-    const [codeCopied, setCodeCopied] = useState(false);
-    const [isSharing, setIsSharing] = useState(false);
-    const [shareError, setShareError] = useState<string | null>(null);
-    const [shareSource, setShareSource] = useState<'local' | 'pro'>('local');
-    const [shareExpiresAt, setShareExpiresAt] = useState<string | null>(null);
-
     // Diálogos de columna
     const [columnDialog, setColumnDialog] = useState<ColumnDialogState | null>(null);
     const [columnToDelete, setColumnToDelete] = useState<{ id: string; title: string } | null>(null);
@@ -54,12 +49,6 @@ export function useBoardViewState() {
     const [showAssignmentsDialog, setShowAssignmentsDialog] = useState(false);
     const [showDocumentsPanel, setShowDocumentsPanel] = useState(false);
 
-    // Insights remotos Pro
-    const [remoteInsights, setRemoteInsights] = useState<ProBoardInsightsResponse | null>(null);
-    const [remoteInsightsLoading, setRemoteInsightsLoading] = useState(false);
-    const [remoteInsightsError, setRemoteInsightsError] = useState<string | null>(null);
-    const [selectedLearnerKey, setSelectedLearnerKey] = useState<string | null>(null);
-
     return {
         editingTask, setEditingTask,
         activeDragTask, setActiveDragTask,
@@ -72,13 +61,6 @@ export function useBoardViewState() {
         undoTimeoutRef,
         searchQuery, setSearchQuery,
         filterColor, setFilterColor,
-        showShareModal, setShowShareModal,
-        shareCode, setShareCode,
-        codeCopied, setCodeCopied,
-        isSharing, setIsSharing,
-        shareError, setShareError,
-        shareSource, setShareSource,
-        shareExpiresAt, setShareExpiresAt,
         columnDialog, setColumnDialog,
         columnToDelete, setColumnToDelete,
         createBoardDialogOpen, setCreateBoardDialogOpen,
@@ -88,9 +70,5 @@ export function useBoardViewState() {
         showStorageCenter, setShowStorageCenter,
         showAssignmentsDialog, setShowAssignmentsDialog,
         showDocumentsPanel, setShowDocumentsPanel,
-        remoteInsights, setRemoteInsights,
-        remoteInsightsLoading, setRemoteInsightsLoading,
-        remoteInsightsError, setRemoteInsightsError,
-        selectedLearnerKey, setSelectedLearnerKey,
     };
 }

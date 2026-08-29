@@ -49,7 +49,6 @@ const insights: ProBoardInsightsResponse = {
     learners: [
         {
             learner_key: 'learner-1',
-            learner_label: 'Marta',
             share_code: 'ABC-1234',
             completed_count: 2,
             total_tasks: 2,
@@ -104,7 +103,8 @@ describe('boardReports', () => {
         expect(report.summary.tasksWithResources).toBe(1);
         expect(report.summary.tasksWithTimers).toBe(1);
         expect(report.evidence).toHaveLength(1);
-        expect(report.learners[0]?.learner_label).toBe('Marta');
+        // El servidor no devuelve nombres: solo la clave aleatoria.
+        expect(report.learners[0]?.learner_key).toBe('learner-1');
         expect(report.columns[0]?.tasks[0]?.durationMinutes).toBe(10);
         expect(report.columns[0]?.tasks[0]?.objective).toBe('Comprender la secuencia');
     });

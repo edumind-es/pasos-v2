@@ -123,7 +123,6 @@ export interface StudentProgress {
     shareCode: string;
     completedTasks: string[]; // IDs de tareas completadas
     lastAccess: string;
-    alias?: string; // Alias opcional del estudiante
     helpTaskIds?: string[];
     validatedTaskIds?: string[];
     evidenceEntries?: StudentEvidenceEntry[];
@@ -287,7 +286,6 @@ export function upsertStudentEvidence(
 export function syncStudentProgressFromRemote(
     shareCode: string,
     payload: {
-        learnerLabel?: string | null;
         completedTaskIds: string[];
         helpTaskIds: string[];
         validatedTaskIds: string[];
@@ -309,7 +307,6 @@ export function syncStudentProgressFromRemote(
     const nextProgress: StudentProgress = {
         ...current,
         shareCode,
-        alias: payload.learnerLabel ?? current.alias,
         completedTasks: payload.completedTaskIds,
         helpTaskIds: payload.helpTaskIds,
         validatedTaskIds: payload.validatedTaskIds,

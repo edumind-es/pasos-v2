@@ -258,3 +258,33 @@ def create_team(
     db.commit()
     db.refresh(team)
     return _team_response(team, team_membership.role)
+
+
+def _require_org_owner(db: Session, organization_id: str, user: User) -> OrganizationMembership:
+    """Solo un administrador de la organización puede archivarla (más estricto que gestionar miembros)."""
+    membership = _require_org_membership(db, organization_id, user)
+    if membership.role != "organization_admin":
+        raise ApiError(403, "org_forbidden", "Solo un administrador de la organización puede eliminarla")
+    return membership
+
+
+def archive_organization(db: Session, organization_id: str, user: User) -> None:
+    """Borrado seguro: desactiva la organización y archiva sus equipos (recuperable, no destructivo)."""
+    _require_org_owner(db, organization_id, user)
+
+    organization = db.scalar(
+        select(Organization).where(
+            Organization.id == organization_id,
+            Organization.is_active.is_(True),
+        )
+    )
+    if not organization:
+        raise ApiError(404, "organization_not_found", "Organization not found")
+
+    organization.is_active = False
+    teams = db.scalars(
+        select(Team).where(Team.organization_id == organization_id, Team.is_archived.is_(False))
+    ).all()
+    for team in teams:
+        team.is_archived = True
+    db.commit()

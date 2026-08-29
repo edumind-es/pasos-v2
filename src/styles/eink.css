@@ -614,50 +614,6 @@ html.eink-dark textarea::placeholder {
     color: inherit;
 }
 
-/* Selector de modo E-Ink - Versión texto simplificado */
-.eink-mode-selector {
-    position: fixed;
-    bottom: 1rem;
-    right: 1rem;
-    z-index: 10001;
-    display: flex;
-    gap: 0;
-    background: var(--eink-paper-light);
-    padding: 0.25rem;
-    border: 1px solid var(--eink-gray-mid);
-    font-family: var(--eink-font-sans);
-    font-size: 0.8rem;
-    border-radius: var(--eink-border-radius);
-    box-shadow: 2px 3px 8px rgba(37, 36, 34, 0.12);
-}
-
-.eink-mode-selector button {
-    padding: 0.4rem 0.7rem !important;
-    font-size: 0.8rem !important;
-    border: none !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    color: var(--eink-ink-light) !important;
-}
-
-.eink-mode-selector button:hover {
-    background: var(--eink-gray-pale) !important;
-    color: var(--eink-ink) !important;
-}
-
-.eink-mode-selector button.active,
-.eink-mode-selector button:not(.eink-btn--outline) {
-    background: var(--eink-ink) !important;
-    color: var(--eink-paper) !important;
-}
-
-.eink-mode-selector .separator {
-    color: var(--eink-gray-light);
-    padding: 0 0.1rem;
-    display: flex;
-    align-items: center;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════════
    REFINAMIENTOS ESPECÍFICOS PARA PASOS V2
    ═══════════════════════════════════════════════════════════════════════════════ */

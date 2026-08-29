@@ -32,7 +32,6 @@ const STUDENT_ALIAS_KEY = 'pasos-student-alias';
 export default function AccessCodePage() {
     const [searchParams] = useSearchParams();
     const [code, setCode] = useState(() => searchParams.get('code') ?? '');
-    const [studentAlias, setStudentAlias] = useState(() => localStorage.getItem(STUDENT_ALIAS_KEY) ?? '');
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
@@ -62,12 +61,9 @@ export default function AccessCodePage() {
         // Simulate a small delay for UX
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        const normalizedAlias = studentAlias.trim();
-        if (normalizedAlias) {
-            localStorage.setItem(STUDENT_ALIAS_KEY, normalizedAlias);
-        } else {
-            localStorage.removeItem(STUDENT_ALIAS_KEY);
-        }
+        // El nombre del alumnado no se pide ni se guarda: se identifica por
+        // una clave aleatoria y el docente ve un apodo calculado de ella.
+        localStorage.removeItem(STUDENT_ALIAS_KEY);
 
         // Save/update student progress
         const existingProgress = getStudentProgress(normalizedCode);
@@ -76,13 +72,11 @@ export default function AccessCodePage() {
                 shareCode: normalizedCode,
                 completedTasks: [],
                 lastAccess: new Date().toISOString(),
-                alias: normalizedAlias || undefined,
             });
         } else {
             saveStudentProgress({
                 ...existingProgress,
                 lastAccess: new Date().toISOString(),
-                alias: normalizedAlias || existingProgress.alias,
             });
         }
 
@@ -92,10 +86,10 @@ export default function AccessCodePage() {
             type: 'student_code_access_success',
             level: 'info',
             message: 'El acceso del alumno continuó hacia el tablero compartido.',
-            metadata: { code: normalizedCode, has_alias: Boolean(normalizedAlias) },
+            metadata: { code: normalizedCode },
         });
         navigate(`/compartir/${normalizedCode}`);
-    }, [navigate, studentAlias]);
+    }, [navigate]);
 
     const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let value = e.target.value.toUpperCase();
@@ -118,7 +112,7 @@ export default function AccessCodePage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-lme-background to-[#0f1a2e] flex flex-col">
+        <div className="min-h-screen bg-lme-background flex flex-col">
             {/* Header minimal */}
             <header className="p-6">
                 <div className="flex items-center gap-3">
@@ -149,19 +143,6 @@ export default function AccessCodePage() {
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Code input */}
                             <div>
-                                <label htmlFor="studentAlias" className="block text-sm font-medium text-sub mb-2">
-                                    Alias del alumno/a (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    id="studentAlias"
-                                    value={studentAlias}
-                                    onChange={(event) => setStudentAlias(event.target.value)}
-                                    placeholder="Ej. Marta o Equipo Azul"
-                                    className="mb-4 w-full rounded-xl border border-lme-border bg-lme-surface px-4 py-3 text-ink placeholder:text-sub/50 focus:border-mint focus:outline-none focus:ring-2 focus:ring-mint/20"
-                                    autoComplete="nickname"
-                                />
-
                                 <label htmlFor="code" className="block text-sm font-medium text-sub mb-2">
                                     Código de Acceso
                                 </label>

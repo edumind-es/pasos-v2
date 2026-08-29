@@ -6,8 +6,8 @@ import { AccessibilityControls } from '../components/AccessibilityControls';
 
 function StatBadge({ label, value }: { label: string; value: string }) {
     return (
-        <div className="rounded-2xl border border-lme-border bg-black/20 px-4 py-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-sub">{label}</p>
+        <div className="rounded-2xl border border-lme-border bg-lme-background px-4 py-3">
+            <p className="plate-mono text-sub">{label}</p>
             <p className="mt-1 text-lg font-bold text-ink">{value}</p>
         </div>
     );
@@ -96,7 +96,7 @@ export default function WorkspaceHomeView() {
 
             <div className="px-4 py-6 sm:px-6 xl:px-8">
             <div className="mx-auto max-w-6xl">
-                <section className="overflow-hidden rounded-3xl border border-lme-border bg-gradient-to-br from-lme-surface-alt via-[#122038] to-[#0d1628] p-6 shadow-2xl shadow-black/20 sm:p-8">
+                <section className="overflow-hidden rounded-3xl border-2 border-ink bg-lme-surface p-6 sm:p-8">
                     <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr] xl:items-center">
                         <div>
                             <div className="flex items-center gap-4 mb-4">
@@ -122,9 +122,9 @@ export default function WorkspaceHomeView() {
                             </div>
                         </div>
 
-                        <div className="rounded-3xl border border-white/10 bg-black/20 p-6 backdrop-blur-sm">
+                        <div className="rounded-3xl border border-lme-border bg-lme-background p-6">
                             <div className="flex items-center gap-3">
-                                <div className="rounded-2xl bg-white/10 p-3">
+                                <div className="rounded-2xl border border-lme-border bg-lme-surface p-3">
                                     <UserRound className="h-6 w-6 text-sky" />
                                 </div>
                                 <div>
@@ -134,14 +134,14 @@ export default function WorkspaceHomeView() {
                             </div>
 
                             <div className="mt-5 grid gap-3">
-                                <div className="rounded-2xl border border-lme-border bg-white/5 p-4">
+                                <div className="rounded-2xl border border-lme-border bg-lme-surface p-4">
                                     <p className="text-xs font-bold uppercase tracking-wide text-sub">Rol</p>
                                     <p className="mt-1 text-sm text-ink">
                                         {currentUser?.role === 'teacher' ? 'Docente' : 'Alumno'} · {currentUser?.mode === 'pro' ? 'Cuenta Pro' : 'Uso local'}
                                     </p>
                                 </div>
 
-                                <div className="rounded-2xl border border-lme-border bg-white/5 p-4">
+                                <div className="rounded-2xl border border-lme-border bg-lme-surface p-4">
                                     <div className="flex items-center justify-between gap-3">
                                         <div>
                                             <p className="text-xs font-bold uppercase tracking-wide text-sub">Código de usuario</p>
@@ -169,7 +169,7 @@ export default function WorkspaceHomeView() {
                 </section>
 
                 <div className="mt-8 grid gap-6 lg:grid-cols-2">
-                    <article className="rounded-3xl border border-sky/20 bg-gradient-to-br from-sky/10 via-white/5 to-white/0 p-6">
+                    <article className="rounded-3xl border border-lme-border border-t-4 border-t-sky bg-lme-surface p-6">
                         <div className="flex items-center gap-3">
                             <div className="rounded-2xl bg-sky/15 p-3">
                                 <GraduationCap className="h-6 w-6 text-sky" />
@@ -198,7 +198,7 @@ export default function WorkspaceHomeView() {
                         </Link>
                     </article>
 
-                    <article className="rounded-3xl border border-mint/20 bg-gradient-to-br from-mint/10 via-white/5 to-white/0 p-6">
+                    <article className="rounded-3xl border border-lme-border border-t-4 border-t-mint bg-lme-surface p-6">
                         <div className="flex items-center gap-3">
                             <div className="rounded-2xl bg-mint/15 p-3">
                                 <Building2 className="h-6 w-6 text-mint" />

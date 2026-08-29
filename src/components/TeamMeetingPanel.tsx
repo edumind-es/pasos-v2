@@ -152,7 +152,7 @@ export function TeamMeetingPanel({ board, readOnly = false }: TeamMeetingPanelPr
             </div>
 
             <div className={`mt-4 grid gap-4 ${meetingMode ? 'xl:grid-cols-[1.15fr_0.85fr]' : 'xl:grid-cols-[0.95fr_1.05fr]'}`}>
-                <div className={`rounded-2xl border border-lme-border p-4 ${meetingMode ? 'bg-slate-950 text-white' : 'bg-black/20'}`}>
+                <div className={`rounded-2xl border border-lme-border p-4 ${meetingMode ? 'bg-ink text-lme-background' : 'bg-black/20'}`}>
                     <div className="flex items-center gap-2">
                         <Users className={`h-4 w-4 ${meetingMode ? 'text-white' : 'text-sky'}`} />
                         <h3 className="text-sm font-semibold">Guion de la reunión</h3>

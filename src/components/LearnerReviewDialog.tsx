@@ -3,6 +3,8 @@ import { CheckCircle2, LifeBuoy, MessageSquareText, NotebookPen, X } from 'lucid
 import type { Board } from '../store/boardStore';
 import { saveLearnerFeedback, type ProBoardLearnerInsightResponse } from '../services/pasosApi';
 import { logAppEvent } from '../services/appTelemetry';
+import { apodoDeClave } from '../utils/apodoAlumno';
+import { anotarNombre, nombreDe } from '../utils/libretaDocente';
 
 interface LearnerReviewDialogProps {
     board: Board;
@@ -19,6 +21,11 @@ export function LearnerReviewDialog({ board, learner, onClose, onSaved }: Learne
         ?? board.tasks[0]?.id
         ?? '',
     );
+    // El servidor no guarda el nombre del alumnado: el apodo se calcula de
+    // su clave y el nombre real, si lo anotas, vive solo en este navegador.
+    const apodo = apodoDeClave(learner.learner_key);
+    const [nombreLibreta, setNombreLibreta] = useState(() => nombreDe(board.id, apodo) ?? '');
+    const [editandoNombre, setEditandoNombre] = useState(false);
     const [status, setStatus] = useState<'comment' | 'needs_revision' | 'validated'>('comment');
     const [message, setMessage] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -70,9 +77,44 @@ export function LearnerReviewDialog({ board, learner, onClose, onSaved }: Learne
                 <div className="flex items-start justify-between gap-4 border-b border-line/50 pb-5">
                     <div>
                         <p className="text-xs font-bold uppercase tracking-wide text-sub">Seguimiento docente</p>
-                        <h2 id="learner-review-dialog-title" className="mt-1 text-2xl font-black text-ink">
-                            {learner.learner_label || 'Alumno anónimo'}
+                        <h2 id="learner-review-dialog-title" className="mt-1 flex items-center gap-2 text-2xl font-black text-ink">
+                            {nombreLibreta || apodo}
+                            <button
+                                type="button"
+                                onClick={() => setEditandoNombre((v) => !v)}
+                                className="rounded-lg px-2 py-1 text-xs font-semibold text-sub transition-colors hover:text-ink"
+                                title="Anotar el nombre real. Solo se guarda en este dispositivo."
+                            >
+                                {nombreLibreta ? 'Cambiar' : 'Anotar nombre'}
+                            </button>
                         </h2>
+                        {nombreLibreta && <p className="text-xs text-sub">{apodo}</p>}
+                        {editandoNombre && (
+                            <div className="mt-2">
+                                <input
+                                    type="text"
+                                    autoFocus
+                                    value={nombreLibreta}
+                                    onChange={(e) => setNombreLibreta(e.target.value)}
+                                    onBlur={() => {
+                                        anotarNombre(board.id, apodo, nombreLibreta);
+                                        setEditandoNombre(false);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') e.currentTarget.blur();
+                                        if (e.key === 'Escape') {
+                                            setNombreLibreta(nombreDe(board.id, apodo) ?? '');
+                                            setEditandoNombre(false);
+                                        }
+                                    }}
+                                    placeholder={`Quién es ${apodo}`}
+                                    className="w-full rounded-lg border border-lme-border bg-lme-surface px-3 py-2 text-sm text-ink focus:border-mint focus:outline-none"
+                                />
+                                <p className="mt-1 text-xs text-sub">
+                                    Se guarda solo en este navegador. No se envía a ningún servidor.
+                                </p>
+                            </div>
+                        )}
                         <p className="mt-2 text-sm text-sub">
                             {learner.completed_count}/{learner.total_tasks} tareas · {learner.progress_percent}% · {learner.last_event_type || 'sin evento reciente'}
                         </p>

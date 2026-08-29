@@ -9,6 +9,8 @@ import {
     type ProLearningAssignmentResponse,
 } from '../services/pasosApi';
 import { logAppEvent } from '../services/appTelemetry';
+import { apodosDeGrupo } from '../utils/apodoAlumno';
+import { etiquetasDeAlumnado } from '../utils/libretaDocente';
 
 interface BoardAssignmentsDialogProps {
     boardId: string;
@@ -59,9 +61,22 @@ export function BoardAssignmentsDialog({ boardId, boardTitle, learners = [], onC
         };
     }, [boardId]);
 
+    // Las asignaciones a alumnado se guardan con el apodo calculado, nunca
+    // con un nombre: `target_label` viaja al servidor.
+    const apodos = useMemo(
+        () => apodosDeGrupo(learners.map((l) => l.learner_key)),
+        [learners],
+    );
+    const etiquetas = useMemo(
+        () => etiquetasDeAlumnado(boardId, learners.map((l) => l.learner_key)),
+        [boardId, learners],
+    );
     const learnerMap = useMemo(() => new Map(
-        learners.map((learner) => [normalizeLabel(learner.learner_label || ''), learner]),
-    ), [learners]);
+        learners.map((learner) => [
+            normalizeLabel(apodos.get(learner.learner_key) ?? ''),
+            learner,
+        ]),
+    ), [apodos, learners]);
 
     const handleCreate = async () => {
         const normalizedLabel = targetLabel.trim();
@@ -149,14 +164,43 @@ export function BoardAssignmentsDialog({ boardId, boardTitle, learners = [], onC
                             </div>
 
                             <div>
-                                <label htmlFor="assignment-target-label" className="mb-2 block text-xs font-semibold uppercase text-sub">Nombre</label>
-                                <input
-                                    id="assignment-target-label"
-                                    value={targetLabel}
-                                    onChange={(event) => setTargetLabel(event.target.value)}
-                                    className="w-full rounded-xl border border-line bg-black/20 px-4 py-3 text-ink focus:border-sky focus:outline-none"
-                                    placeholder={targetType === 'student' ? 'Ej. Marta' : 'Ej. Equipo Azul'}
-                                />
+                                <label htmlFor="assignment-target-label" className="mb-2 block text-xs font-semibold uppercase text-sub">
+                                    {targetType === 'student' ? 'Alumno/a' : 'Nombre del grupo'}
+                                </label>
+                                {targetType === 'student' ? (
+                                    <>
+                                        <select
+                                            id="assignment-target-label"
+                                            value={targetLabel}
+                                            onChange={(event) => setTargetLabel(event.target.value)}
+                                            className="w-full rounded-xl border border-line bg-black/20 px-4 py-3 text-ink focus:border-sky focus:outline-none"
+                                        >
+                                            <option value="">Elige quién</option>
+                                            {learners.map((learner) => {
+                                                const apodo = apodos.get(learner.learner_key) ?? '';
+                                                const visible = etiquetas.get(learner.learner_key) ?? apodo;
+                                                return (
+                                                    <option key={learner.learner_key} value={apodo}>
+                                                        {visible === apodo ? apodo : `${visible} (${apodo})`}
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                        <p className="mt-1 text-xs text-sub">
+                                            {learners.length === 0
+                                                ? 'Todavía no ha entrado nadie con el código.'
+                                                : 'Se guarda el apodo, no el nombre: el servidor no recibe nombres de alumnado.'}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <input
+                                        id="assignment-target-label"
+                                        value={targetLabel}
+                                        onChange={(event) => setTargetLabel(event.target.value)}
+                                        className="w-full rounded-xl border border-line bg-black/20 px-4 py-3 text-ink focus:border-sky focus:outline-none"
+                                        placeholder="Ej. Equipo Azul"
+                                    />
+                                )}
                             </div>
 
                             <div>

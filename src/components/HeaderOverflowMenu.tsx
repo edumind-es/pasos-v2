@@ -6,6 +6,7 @@ import { MoreHorizontal } from 'lucide-react';
 export type OverflowItem =
     | { kind: 'link'; label: string; icon: React.ReactNode; href: string }
     | { kind: 'action'; label: string; icon: React.ReactNode; onClick: () => void; disabled?: boolean }
+    | { kind: 'heading'; label: string }
     | { kind: 'separator' };
 
 interface Props {
@@ -36,7 +37,7 @@ export function HeaderOverflowMenu({ items }: Props) {
                 ref={btnRef}
                 type="button"
                 onClick={handleOpen}
-                className="w-9 h-9 rounded-full border border-line bg-black/20 flex items-center justify-center hover:bg-white/5 transition-colors"
+                className="w-9 h-9 rounded-lg border border-line bg-black/20 flex items-center justify-center hover:bg-white/5 transition-colors"
                 aria-haspopup="menu"
                 aria-expanded={open}
                 title="Más opciones"
@@ -56,6 +57,13 @@ export function HeaderOverflowMenu({ items }: Props) {
                         {items.map((item, i) => {
                             if (item.kind === 'separator') {
                                 return <div key={i} className="my-1 border-t border-line/50" />;
+                            }
+                            if (item.kind === 'heading') {
+                                return (
+                                    <p key={i} className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sub select-none">
+                                        {item.label}
+                                    </p>
+                                );
                             }
                             if (item.kind === 'link') {
                                 return (

@@ -61,6 +61,31 @@
   font-display: swap;
 }
 
+/* Tipografías lámina Cinco Mundos: Outfit (display/UI) + IBM Plex Mono (metadatos) */
+@font-face {
+  font-family: 'Outfit';
+  src: url('/fonts/Outfit-Variable.woff2') format('woff2');
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/fonts/IBMPlexMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/fonts/IBMPlexMono-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   /* ── Escala de z-index semántica ─────────────────────────────────────
      Los valores altos son necesarios porque glass-panel usa backdrop-filter
@@ -76,31 +101,49 @@
   --z-toast: 530;
   --z-top: 9999;
 
-  /* ── Paleta EDUmind (tema profesional) ──────────────────────────────── */
-  --color-mint: #3ddad7;
-  --color-sky: #3c7dff;
-  --color-vio: #a963ff;
-  --color-ink: #f5fbff;
-  --color-sub: #96aac7;
-  --color-bg0: #040614;
-  --color-line: rgba(90, 126, 181, .38);
+  /* ── Los Cinco Mundos (lámina EDUmind) ─────────────────────────────── */
+  --color-fisico: #e8613f;
+  --color-social: #e8a92e;
+  --color-emocional: #6ea94a;
+  --color-mental: #3f7d99;
+  --color-interior: #2c5c66;
+
+  /* ── Paleta EDUmind lámina: papel + tinta + mundos como acentos ─────
+     Los alias mint/sky/vio se conservan por compatibilidad, remapeados:
+     sky → mental, mint → emocional, vio → interior ─────────────────── */
+  --color-mint: #6ea94a;
+  --color-sky: #3f7d99;
+  --color-vio: #2c5c66;
+  --color-ink: #1c1a16;
+  --color-sub: #4f4a41;
+  --color-bg0: #e9e6dd;
+  --color-line: #c7c0b1;
 
   /* ── Colores LME (superficies, texto, estados) ──────────────────────── */
-  --color-lme-background: #040614;
-  --color-lme-surface: rgba(25, 40, 66, 0.72);
-  --color-lme-surface-alt: rgba(13, 22, 38, 0.78);
-  --color-lme-border: rgba(90, 126, 181, 0.38);
-  --color-lme-text: #f5fbff;
-  --color-lme-text-secondary: #96aac7;
-  --color-lme-muted: #96aac7;
-  --color-lme-primary: #3c7dff;
-  --color-lme-primary-dark: #2563eb;
-  --color-lme-secondary: #3ddad7;
-  --color-lme-accent: #a963ff;
-  --color-lme-danger: #ef4444;
-  --color-lme-warning: #FBBF24;
+  --color-lme-background: #e9e6dd;
+  --color-lme-surface: #f0ede5;
+  --color-lme-surface-alt: #f0ede5;
+  --color-lme-border: #c7c0b1;
+  --color-lme-text: #1c1a16;
+  --color-lme-text-secondary: #4f4a41;
+  --color-lme-muted: #8a8377;
+  --color-lme-primary: #3f7d99;
+  --color-lme-primary-dark: #2c5c66;
+  --color-lme-secondary: #6ea94a;
+  --color-lme-accent: #e8a92e;
+  --color-lme-danger: #e8613f;
+  --color-lme-warning: #e8a92e;
 
-  --shadow-lme: 0 24px 46px rgba(4, 10, 28, 0.55);
+  /* Lámina: plano, sin sombras flotantes */
+  --shadow-lme: 0 1px 0 rgba(28, 26, 22, 0.08);
+
+  /* ── Radios lámina: rectangular, casi sin curva ─────────────────────
+     Redefine la escala de Tailwind; rounded-full se conserva para
+     avatares y puntos de estado ──────────────────────────────────── */
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --radius-2xl: 3px;
+  --radius-3xl: 3px;
 }
 
 /* ── Variables CSS heredadas — ahora aliases de @theme ─────────────────
@@ -123,14 +166,15 @@
 
   --base-font-size: 16px;
   --heading-scale: 1.25;
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono-plate: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
   --card-padding: 1rem;
   --column-gap: 1.5rem;
-  --border-radius: 1rem;
+  --border-radius: 3px;
 
   /* Personalización de fuente — funciona en todos los temas */
   --user-font-size: 18px;
-  --user-font-family: "Atkinson Hyperlegible", "OpenDyslexic", Verdana, sans-serif;
+  --user-font-family: "Outfit", "Atkinson Hyperlegible", Verdana, sans-serif;
 }
 
 /* Base Styles */
@@ -152,6 +196,7 @@ body[data-edumind-embed="true"] #root {
   min-height: 100dvh;
 }
 
+body[data-edumind-embed="true"] .plate-top,
 body[data-edumind-embed="true"] header.sticky,
 body[data-edumind-embed="true"] .edumind-footer,
 body[data-edumind-embed="true"] .fixed.bottom-6,
@@ -182,17 +227,46 @@ body[data-edumind-embed="true"] .pasos-board-embed-shell {
   border-radius: 18px !important;
 }
 
-/* Professional Theme - Dark Background with Gradients */
+/* Tema lámina: papel plano, sin gradientes */
 body.theme-professional::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
-  background:
-    radial-gradient(circle at 15% 50%, rgba(61, 218, 215, 0.08), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(60, 125, 255, 0.08), transparent 25%),
-    linear-gradient(180deg, #040614 0%, #0b1425 100%);
+  background: var(--color-lme-background);
   pointer-events: none;
+}
+
+/* Grano de impresión — firma de la lámina; nunca en modo E-Ink */
+body.theme-professional:not(.eink-body)::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Barra de mundos a sangre — cabecera-lámina de 5 colores */
+.plate-top {
+  display: flex;
+  height: 8px;
+}
+.plate-top i { flex: 1; }
+.plate-top i:nth-child(1) { background: var(--color-fisico); }
+.plate-top i:nth-child(2) { background: var(--color-social); }
+.plate-top i:nth-child(3) { background: var(--color-emocional); }
+.plate-top i:nth-child(4) { background: var(--color-mental); }
+.plate-top i:nth-child(5) { background: var(--color-interior); }
+
+/* Metadatos estilo lámina científica */
+.plate-mono {
+  font-family: var(--font-mono-plate);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* Student Theme - Bright Background with Playful Patterns */
@@ -218,32 +292,71 @@ body.theme-student::before {
   container-name: sidebar;
 }
 
-@container sidebar (max-width: 400px) {
-  /* Colapsar todos los grids multi-columna a una sola columna */
-  .pasos-sidebar .grid {
+@container sidebar (max-width: 520px) {
+  /* Los paneles del sidebar (WorkspaceContextBar, insights, equipo) se
+     diseñaron a ancho completo con breakpoints de VIEWPORT (md/lg/xl). Dentro
+     del sidebar estrecho esos breakpoints creen tener 1280px y despliegan
+     filas que desbordan. Aquí neutralizamos esos layouts horizontales para
+     que apilen según el ANCHO REAL del sidebar. */
+  .pasos-sidebar .xl\:flex {
+    display: block !important;
+  }
+  .pasos-sidebar .xl\:flex-row {
+    flex-direction: column !important;
+  }
+  .pasos-sidebar .xl\:items-end,
+  .pasos-sidebar .xl\:items-center {
+    align-items: stretch !important;
+  }
+  .pasos-sidebar .md\:grid-cols-2,
+  .pasos-sidebar .md\:grid-cols-4,
+  .pasos-sidebar .lg\:grid-cols-2,
+  .pasos-sidebar .xl\:grid-cols-3,
+  .pasos-sidebar .xl\:grid-cols-4 {
     grid-template-columns: 1fr !important;
   }
-  /* Reducir tipografía para paneles densos */
+}
+
+@container sidebar (max-width: 340px) {
+  /* Sidebar muy estrecho (viewports pequeños): densificar */
   .pasos-sidebar h3,
   .pasos-sidebar h4 {
     font-size: 0.8rem;
   }
-  .pasos-sidebar p,
-  .pasos-sidebar span,
-  .pasos-sidebar label {
-    font-size: 0.75rem;
-  }
-  /* Ajustar padding de tarjetas internas */
   .pasos-sidebar .rounded-xl,
   .pasos-sidebar .rounded-2xl {
     padding: 0.5rem;
   }
 }
 
-/* Glassmorphism Utilities */
+/* ── Reinterpretación lámina de los matices oscuros ─────────────────
+   En el tema oscuro original, bg-black/5–30 marcaba paneles rehundidos
+   y bg-white/5–20 (y sus hover) resaltaba al pasar. Sobre papel, ambos
+   gestos se expresan oscureciendo con lavados de tinta. Los fondos de
+   modal (bg-black/40+) se mantienen oscuros. El modo E-Ink queda fuera:
+   aplica sus propias reglas. ──────────────────────────────────────── */
+body.theme-professional:not(.eink-body) :is(.bg-black\/5, .bg-black\/10, .bg-white\/5) {
+  background-color: rgba(28, 26, 22, 0.04);
+}
+body.theme-professional:not(.eink-body) :is(.bg-black\/20, .bg-white\/10) {
+  background-color: rgba(28, 26, 22, 0.06);
+}
+body.theme-professional:not(.eink-body) :is(.bg-black\/30, .bg-white\/20) {
+  background-color: rgba(28, 26, 22, 0.09);
+}
+body.theme-professional:not(.eink-body) .hover\:bg-white\/5:hover {
+  background-color: rgba(28, 26, 22, 0.05);
+}
+body.theme-professional:not(.eink-body) .hover\:bg-white\/10:hover {
+  background-color: rgba(28, 26, 22, 0.08);
+}
+body.theme-professional:not(.eink-body) .hover\:bg-white\/20:hover {
+  background-color: rgba(28, 26, 22, 0.12);
+}
+
+/* Panel de papel (antes glassmorphism): plano, con regla, sin blur */
 .glass-panel {
   background-color: var(--color-lme-surface);
-  backdrop-filter: blur(12px);
   border: 1px solid var(--color-lme-border);
   box-shadow: var(--shadow-lme);
   border-radius: var(--border-radius);
@@ -282,7 +395,7 @@ main [class*="glass-card"] {
   font-size: var(--user-font-size) !important;
 }
 
-/* Mantener controles de UI con fuente del sistema */
+/* Controles de UI con la tipografía de la lámina (Outfit) */
 header,
 header *,
 button:not(main button),
@@ -291,7 +404,7 @@ option,
 input,
 footer,
 footer * {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-family: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
 
 /* Botones dentro de main pueden usar la fuente personalizada */
@@ -346,7 +459,7 @@ main button {
   background-color: transparent;
   color: var(--color-ink);
 }
-.btn-ghost:hover { background-color: rgba(255,255,255,0.05); }
+.btn-ghost:hover { background-color: rgba(28, 26, 22, 0.05); }
 
 /* Estado deshabilitado común */
 .btn-header:disabled,
@@ -509,4 +622,12 @@ body.theme-tablet h3 {
 
 .snap-center {
   scroll-snap-align: center;
+}
+
+/* --- Identidad Sistema Lámina EDUmind (nivel 1) ---
+   Canon: edumind.es/design/lamina.html · tokens en /vendor/lamina-v1.css
+   En modo e-ink la barra de color desaparece. */
+.eink .lm-plate-top,
+html:has(.eink) .lm-plate-top {
+  display: none;
 }

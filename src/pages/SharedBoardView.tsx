@@ -42,9 +42,9 @@ import {
     type ProShareResolveResponse,
 } from '../services/pasosApi';
 import { logAppEvent } from '../services/appTelemetry';
+import { apodoDeClave } from '../utils/apodoAlumno';
 
 const SHARE_LEARNER_KEY_PREFIX = 'pasos-share-learner';
-const STUDENT_ALIAS_KEY = 'pasos-student-alias';
 
 function getOrCreateLearnerKey(code: string): string {
     const storageKey = `${SHARE_LEARNER_KEY_PREFIX}:${code}`;
@@ -53,11 +53,6 @@ function getOrCreateLearnerKey(code: string): string {
     const created = crypto.randomUUID();
     localStorage.setItem(storageKey, created);
     return created;
-}
-
-function getStoredLearnerAlias(): string | undefined {
-    const value = localStorage.getItem(STUDENT_ALIAS_KEY)?.trim();
-    return value ? value : undefined;
 }
 
 export default function SharedBoardView() {
@@ -147,7 +142,9 @@ export default function SharedBoardView() {
     const learnerKey = useMemo(() => (
         normalizedCode ? getOrCreateLearnerKey(normalizedCode) : null
     ), [normalizedCode]);
-    const learnerAlias = progress?.alias?.trim() || getStoredLearnerAlias();
+    // El apodo se calcula de la clave: ni el alumno lo escribe ni el
+    // servidor lo guarda. Ver utils/apodoAlumno.ts.
+    const apodo = learnerKey ? apodoDeClave(learnerKey) : null;
 
     const isResolvingRemote = Boolean(normalizedCode && (!localSharedBoard || !localBoard) && !remoteShare && !remoteError);
 
@@ -158,7 +155,6 @@ export default function SharedBoardView() {
             : null;
 
     const applyRemoteProgress = useCallback((payload: {
-        learner_label: string | null;
         completed_task_ids: string[];
         help_task_ids: string[];
         validated_task_ids: string[];
@@ -168,7 +164,6 @@ export default function SharedBoardView() {
     }) => {
         if (!normalizedCode) return;
         syncStudentProgressFromRemote(normalizedCode, {
-            learnerLabel: payload.learner_label ?? undefined,
             completedTaskIds: payload.completed_task_ids,
             helpTaskIds: payload.help_task_ids,
             validatedTaskIds: payload.validated_task_ids,
@@ -200,7 +195,6 @@ export default function SharedBoardView() {
 
             void recordRemoteShareActivity(normalizedCode, {
                 learner_key: learnerKey,
-                learner_label: learnerAlias,
                 event_type: eventType,
                 completed_task_ids: nextCompleted,
                 help_task_ids: progress?.helpTaskIds ?? [],
@@ -244,7 +238,6 @@ export default function SharedBoardView() {
         if (remoteShare && learnerKey) {
             void recordRemoteShareActivity(normalizedCode, {
                 learner_key: learnerKey,
-                learner_label: learnerAlias,
                 event_type: 'progress_updated',
                 completed_task_ids: nextProgress.completedTasks,
                 help_task_ids: nextProgress.helpTaskIds,
@@ -279,7 +272,6 @@ export default function SharedBoardView() {
         if (remoteShare && learnerKey) {
             void recordRemoteShareActivity(normalizedCode, {
                 learner_key: learnerKey,
-                learner_label: learnerAlias,
                 event_type: 'progress_updated',
                 completed_task_ids: nextProgress.completedTasks,
                 help_task_ids: nextProgress.helpTaskIds ?? [],
@@ -341,7 +333,6 @@ export default function SharedBoardView() {
 
         void recordRemoteShareActivity(normalizedCode, {
             learner_key: learnerKey,
-            learner_label: learnerAlias,
             event_type: 'accessed',
             completed_task_ids: progress?.completedTasks ?? [],
             last_access_at: new Date().toISOString(),
@@ -364,7 +355,7 @@ export default function SharedBoardView() {
                 metadata: { code: normalizedCode },
             });
         });
-    }, [applyRemoteProgress, board, learnerAlias, learnerKey, normalizedCode, progress?.completedTasks, remoteShare]);
+    }, [applyRemoteProgress, board, learnerKey, normalizedCode, progress?.completedTasks, remoteShare]);
 
     if (!normalizedCode) {
         return <Navigate to="/codigo" replace />;
@@ -372,7 +363,7 @@ export default function SharedBoardView() {
 
     if (isResolvingRemote && !board) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-lme-background to-[#0f1a2e] flex flex-col items-center justify-center p-6">
+            <div className="min-h-screen bg-lme-background flex flex-col items-center justify-center p-6">
                 <div className="glass-panel p-8 rounded-2xl text-center max-w-md">
                     <div className="w-14 h-14 rounded-full border-2 border-mint/30 border-t-mint animate-spin mx-auto mb-4" />
                     <h2 className="text-xl font-bold text-ink mb-2">Buscando tablero</h2>
@@ -384,7 +375,7 @@ export default function SharedBoardView() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-lme-background to-[#0f1a2e] flex flex-col items-center justify-center p-6">
+            <div className="min-h-screen bg-lme-background flex flex-col items-center justify-center p-6">
                 <div className="glass-panel p-8 rounded-2xl text-center max-w-md">
                     <Info className="w-16 h-16 text-sub mx-auto mb-4" />
                     <h2 className="text-xl font-bold text-ink mb-2">Código no válido</h2>
@@ -402,7 +393,7 @@ export default function SharedBoardView() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-lme-background to-[#0f1a2e] flex flex-col">
+        <div className="min-h-screen bg-lme-background flex flex-col">
             {/* Header */}
             <header className="sticky top-0 z-sticky glass-panel border-b border-lme-border/50 px-4 py-4 sm:px-6">
                 <div className="max-w-[1400px] mx-auto flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -423,7 +414,7 @@ export default function SharedBoardView() {
                             </h1>
                             <p className="text-xs text-sub">
                                 Código: <span className="font-mono">{normalizedCode}</span>
-                                {learnerAlias && <span> · Alumno: <span className="text-ink">{learnerAlias}</span></span>}
+                                {apodo && <span> · Eres <span className="text-ink">{apodo}</span></span>}
                             </p>
                         </div>
                     </div>

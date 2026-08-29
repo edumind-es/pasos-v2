@@ -1,5 +1,6 @@
 import type { Board } from '../store/boardStore';
 import type { ProBoardInsightsResponse } from '../services/pasosApi';
+import { etiquetasDeAlumnado } from './libretaDocente';
 
 interface BoardReportSummary {
     totalColumns: number;
@@ -156,10 +157,18 @@ export function downloadBoardReportHtml(board: Board, insights: ProBoardInsights
         `).join('')}</ul>`
         : '<p>No hay recursos o evidencias adjuntas en este tablero.</p>';
 
+    // El informe lo genera el navegador del docente, asi que aqui si puede
+    // aparecer el nombre que el haya anotado en su libreta local. Es su
+    // documento, en su equipo; el servidor sigue sin saber nada.
+    const etiquetas = etiquetasDeAlumnado(
+        report.board.id,
+        report.learners.map(l => l.learner_key),
+    );
+
     const learnersMarkup = report.learners.length > 0
         ? `<ul>${report.learners.map(learner => `
             <li>
-                <strong>${escapeHtml(learner.learner_label || 'Alumno anónimo')}</strong>
+                <strong>${escapeHtml(etiquetas.get(learner.learner_key) ?? 'Alumno')}</strong>
                 · ${learner.completed_count}/${learner.total_tasks} tareas
                 · ${learner.progress_percent}%
                 · ${escapeHtml(learner.last_event_type || 'sin evento')}

@@ -210,7 +210,6 @@ def test_pilot_center_flow_covers_core_modules(client: TestClient) -> None:
         f"/api/v1/share/{share_code}/activity",
         json={
             "learner_key": "pilot-learner",
-            "learner_label": "Alumno piloto",
             "event_type": "progress_updated",
             "completed_task_ids": ["personal-task-1"],
             "help_task_ids": ["personal-task-2"],

@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import { Activity, BookOpenCheck, Clock3, Link2, NotebookPen, TriangleAlert } from 'lucide-react';
 import type { Board, ProSyncState, WorkspacePanelKey, WorkspacePanelPreference } from '../store/boardStore';
 import { getRecentAppEvents } from '../services/appTelemetry';
 import type { ProBoardInsightsResponse } from '../services/pasosApi';
 import { WorkspacePanelAccordion } from './WorkspacePanelAccordion';
+import { etiquetasDeAlumnado } from '../utils/libretaDocente';
 
 interface BoardInsightsPanelProps {
     board: Board | null;
@@ -58,6 +60,14 @@ export function BoardInsightsPanel({
     const recentLocalEvents = getRecentAppEvents(5);
     const recentRemoteEvents = remoteInsights?.recent_events ?? [];
     const recentEvents = recentRemoteEvents.length > 0 ? recentRemoteEvents : recentLocalEvents;
+    // Etiqueta de cada alumno: el nombre anotado en este navegador si lo
+    // hay, y si no el apodo calculado de su clave. El servidor no guarda
+    // ningun nombre.
+    const etiquetas = useMemo(() => etiquetasDeAlumnado(
+        board?.id ?? '',
+        remoteInsights?.learners.map((l) => l.learner_key) ?? [],
+    ), [board?.id, remoteInsights]);
+
     const learnersNeedingHelp = remoteInsights?.learners.filter(learner => learner.help_task_count > 0).length ?? 0;
     const pendingValidationCount = remoteInsights?.learners.reduce((total, learner) => (
         total + Math.max(0, learner.completed_count - learner.validated_count)
@@ -116,14 +126,14 @@ export function BoardInsightsPanel({
                     expanded={panelPreferences.teacher_summary.expanded}
                     onToggleExpanded={() => onUpdatePanelPreference('teacher_summary', { expanded: !panelPreferences.teacher_summary.expanded })}
                 >
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {cards.map(({ label, value, icon: Icon }) => (
-                            <div key={label} className="rounded-xl border border-lme-border bg-black/20 p-4">
-                                <div className="flex items-center gap-2 text-sub">
-                                    <Icon className="h-4 w-4" />
-                                    <span className="text-xs uppercase tracking-wide">{label}</span>
+                            <div key={label} className="rounded-xl border border-lme-border bg-black/20 p-3">
+                                <div className="flex items-start gap-1.5 text-sub">
+                                    <Icon className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                                    <span className="plate-mono leading-tight break-words min-w-0">{label}</span>
                                 </div>
-                                <p className="mt-3 text-2xl font-black text-ink">{value}</p>
+                                <p className="mt-2 text-2xl font-black text-ink">{value}</p>
                             </div>
                         ))}
                     </div>
@@ -242,7 +252,7 @@ export function BoardInsightsPanel({
                                 <NotebookPen className="h-4 w-4 text-mint" />
                                 Seguimiento del alumnado
                             </div>
-                            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                            <div className="mt-3 grid gap-2">
                                 {remoteInsights.learners.slice(0, 6).map(learner => (
                                     <button
                                         type="button"
@@ -253,7 +263,7 @@ export function BoardInsightsPanel({
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="min-w-0">
                                                 <p className="truncate text-sm font-semibold text-ink">
-                                                    {learner.learner_label || 'Alumno anónimo'}
+                                                    {etiquetas.get(learner.learner_key) ?? 'Alumno'}
                                                 </p>
                                                 <p className="text-xs text-sub">
                                                     {learner.share_code ? `Código ${learner.share_code}` : 'Sin código visible'} · {new Date(learner.last_access_at).toLocaleString()}
