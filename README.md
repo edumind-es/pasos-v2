@@ -1,14 +1,10 @@
 # Pasos
 
-Pasos is an EDUmind educational planning app for multimodal project boards,
-classroom workflows and accessible visual organization.
+Planificación educativa en tableros de proyecto multimodales: secuencias didácticas, flujos de aula y organización visual accesible. Backend en FastAPI, frontend en React.
 
-This public repository is a sanitized source release for code review,
-educational reuse and community audit. Production secrets, deployment
-configuration, private runbooks, backups and uploaded user content are not
-included.
+> Pensado para preparar una unidad didáctica de un vistazo y poder proyectarla tal cual delante del grupo.
 
-## Development
+## Arrancar en local
 
 Frontend:
 
@@ -27,15 +23,27 @@ python3 -m venv .venv
 pip install -r requirements.txt
 ```
 
-Use placeholder configuration only. Generate fresh secrets for any real
-deployment.
+Usa solo configuración de ejemplo. Genera secretos nuevos para cualquier despliegue real.
 
-## Release Scope
+## Pruebas
 
-See `OPEN_SOURCE_RELEASE.md` for what is included and excluded.
+```bash
+npm run test:run     # frontend
+cd backend && pytest # backend
+```
 
-## License
+## Colaborar
 
-Licensed under `AGPL-3.0-or-later OR EUPL-1.2`.
+Se puede colaborar **sin programar**: contar cómo te ha ido en clase, reportar un fallo, revisar los textos o traducir. Todo el proyecto está en español. Empieza por [CONTRIBUTING.md](CONTRIBUTING.md) y el [código de conducta](CODE_OF_CONDUCT.md).
 
-EDUmind(R), logos and brand assets are reserved. See `TRADEMARKS.md`.
+¿Un fallo de seguridad? No abras un issue público: ver [SECURITY.md](SECURITY.md).
+
+Este repositorio es una *release saneada* para revisión y auditoría: no incluye secretos, configuración de despliegue ni datos de aula. Ver [OPEN_SOURCE_RELEASE.md](OPEN_SOURCE_RELEASE.md).
+
+## Licencia
+
+Licencia doble **AGPL-3.0-or-later** *o* **EUPL-1.2**, a elección de quien la reutilice. Ver [LICENSE](LICENSE) y [NOTICE](NOTICE).
+
+EDUmind® es marca registrada en España (OEPM). El código es libre; la marca y los logotipos no se ceden con él — ver [TRADEMARKS.md](TRADEMARKS.md).
+
+Por **Luis Vilela Acuña** — maestro de Educación Física.
