@@ -14,6 +14,10 @@ from app.models import Base
 def db_session(tmp_path, monkeypatch: pytest.MonkeyPatch) -> Generator[Session, None, None]:
     db_path = tmp_path / "pasos-test.db"
     monkeypatch.setenv("PASOS_PUBLIC_BASE_URL", "https://staging.pasos.test")
+    # Las pruebas usan los secretos de ejemplo a propósito; márcalas como
+    # entorno de pruebas para que enforce_secret_policy() no aborte el arranque
+    # (esa política solo debe morder en producción).
+    monkeypatch.setenv("PASOS_APP_ENV", "test")
     get_settings.cache_clear()
 
     engine = create_engine(f"sqlite+pysqlite:///{db_path}", future=True)
