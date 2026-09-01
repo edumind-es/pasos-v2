@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 from time import perf_counter
 from uuid import uuid4
 
@@ -16,12 +17,21 @@ settings = get_settings()
 configure_logging()
 logger = logging.getLogger("pasos.api")
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # En producción, no arrancar con secretos de ejemplo o demasiado cortos.
+    # Vale más caerse aquí, ruidosamente, que servir con tokens falsificables.
+    get_settings().enforce_secret_policy()
+    yield
+
+
 app = FastAPI(
     title="Pasos API",
     version="0.1.0",
     docs_url=settings.docs_url,
     openapi_url=settings.openapi_url,
     redoc_url=None,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
