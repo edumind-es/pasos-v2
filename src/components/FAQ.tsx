@@ -41,7 +41,7 @@ const FAQS_GENERAL: FAQItem[] = [
     },
     {
         question: "¿Necesito conexión a internet?",
-        answer: "Depende del modo. Express y Local con nombre funcionan en este navegador sin necesidad de backend. El modo Pro necesita conexión para iniciar sesión, publicar tableros y compartir entre dispositivos. ARASAAC también requiere conexión la primera vez para buscar pictogramas."
+        answer: "Depende del modo. Express y Local con nombre funcionan en este navegador sin necesidad de backend. El modo Pro necesita conexión para iniciar sesión, publicar tableros y compartir entre dispositivos. Los pictogramas de ARASAAC necesitan conexión: la búsqueda y las imágenes se cargan de arasaac.org (el navegador solo guarda en caché las búsquedas recientes, no las imágenes)."
     },
     {
         question: "¿Mis datos están seguros?",
