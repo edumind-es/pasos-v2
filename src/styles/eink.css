@@ -50,12 +50,13 @@
     /* Texto principal - tinta */
     --eink-ink-soft: #3c3934;
     /* Texto secundario */
-    --eink-ink-light: #676158;
-    /* Texto terciario/muted */
+    --eink-ink-light: #4f4a41;
+    /* Texto terciario/muted (5,1:1 sobre --eink-gray-pale; antes #676158 = 3,6:1) */
 
     /* ESCALA DE GRISES */
     --eink-gray-dark: #4a4744;
-    --eink-gray-mid: #7a7670;
+    --eink-gray-mid: #55504a;
+    /* También se usa como color de texto (placeholders, zonas vacías): 4,7:1 sobre --eink-gray-pale */
     --eink-gray-light: #aaa49a;
     --eink-gray-pale: #cbc5ba;
 

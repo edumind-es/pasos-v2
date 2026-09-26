@@ -31,7 +31,8 @@ import { EditableBoardTitle } from '../components/EditableBoardTitle';
 import { TextActionDialog } from '../components/TextActionDialog';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { HeaderOverflowMenu } from '../components/HeaderOverflowMenu';
-import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, type DragStartEvent, type DragOverEvent, defaultDropAnimationSideEffects, type DropAnimation } from '@dnd-kit/core';
+import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, KeyboardSensor, type DragStartEvent, type DragOverEvent, defaultDropAnimationSideEffects, type DropAnimation } from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { createPortal } from 'react-dom';
 import { BoardColumn } from '../components/BoardColumn';
 import { TaskCard } from '../components/TaskCard';
@@ -313,7 +314,10 @@ function BoardView() {
             activationConstraint: {
                 distance: 8, // Prevent accidental drags
             }
-        })
+        }),
+        // Vía de teclado: con el foco en la tarjeta, Espacio/Enter la levanta,
+        // las flechas la llevan a otra columna y Espacio/Enter la suelta (Esc cancela).
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
     const handleAddTask = (columnId: string) => {
@@ -812,9 +816,9 @@ function BoardView() {
                                         <p className="plate-mono font-semibold text-fisico">
                                             {isClassroomWorkspace ? 'Kanban de aula' : currentBoard.contextType === 'team' ? 'Kanban de equipo' : 'Kanban de organización'}
                                         </p>
-                                        <h2 className="mt-1 text-xl font-black text-ink truncate">
+                                        <h1 className="mt-1 text-xl font-black text-ink truncate">
                                             {currentBoard.title}
-                                        </h2>
+                                        </h1>
                                     </div>
                                 )}
 

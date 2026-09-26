@@ -119,7 +119,7 @@ export function LearnerReviewDialog({ board, learner, onClose, onSaved }: Learne
                             {learner.completed_count}/{learner.total_tasks} tareas · {learner.progress_percent}% · {learner.last_event_type || 'sin evento reciente'}
                         </p>
                     </div>
-                    <button type="button" onClick={onClose} className="rounded-xl p-2 text-sub transition-colors hover:text-ink">
+                    <button type="button" onClick={onClose} aria-label="Cerrar" className="rounded-xl p-2 text-sub transition-colors hover:text-ink">
                         <X className="h-5 w-5" />
                     </button>
                 </div>

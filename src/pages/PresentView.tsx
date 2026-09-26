@@ -149,7 +149,7 @@ function PresentView() {
                             <span className="hidden items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-sub sm:flex">
                                 <Keyboard className="h-3.5 w-3.5" /> ← → navegar · espacio temporizador · F pantalla · Esc salir
                             </span>
-                            <button onClick={() => setFocusTaskId(null)} title="Salir (Esc)" className="flex h-11 w-11 items-center justify-center rounded-lg border border-lme-border text-sub transition-colors hover:border-ink hover:text-ink">
+                            <button onClick={() => setFocusTaskId(null)} title="Salir (Esc)" aria-label="Salir del foco (Esc)" className="flex h-11 w-11 items-center justify-center rounded-lg border border-lme-border text-sub transition-colors hover:border-ink hover:text-ink">
                                 <X className="h-6 w-6" />
                             </button>
                         </div>

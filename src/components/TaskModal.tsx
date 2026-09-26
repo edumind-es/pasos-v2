@@ -246,7 +246,7 @@ export default function TaskModal({ taskId, onClose, readOnly = false }: TaskMod
                             placeholder="Título de la tarea..."
                             id="task-modal-title"
                         />
-                        <button onClick={onClose} className="mt-1 text-sub hover:text-white transition-colors shrink-0">
+                        <button type="button" onClick={onClose} aria-label="Cerrar" className="mt-1 text-sub hover:text-white transition-colors shrink-0">
                             <X className="w-6 h-6" />
                         </button>
                     </div>
@@ -321,8 +321,8 @@ export default function TaskModal({ taskId, onClose, readOnly = false }: TaskMod
 
                     {/* Tipo de tarjeta — en tab Básico */}
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold uppercase text-sub">Tipo de tarjeta</label>
-                        <select value={taskType} onChange={e => setTaskType(e.target.value as typeof taskType)} disabled={readOnly}
+                        <label htmlFor="task-modal-type" className="text-sm font-semibold uppercase text-sub">Tipo de tarjeta</label>
+                        <select id="task-modal-type" value={taskType} onChange={e => setTaskType(e.target.value as typeof taskType)} disabled={readOnly}
                             className="w-full bg-lme-surface border border-line rounded-xl px-4 py-3 text-ink focus:outline-none focus:border-sky disabled:cursor-not-allowed disabled:opacity-50">
                             <option value="task">Tarea</option>
                             <option value="learning_step">Paso de aprendizaje</option>
@@ -365,8 +365,8 @@ export default function TaskModal({ taskId, onClose, readOnly = false }: TaskMod
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-semibold uppercase text-sub">Estado pedagógico</label>
-                            <select value={pedagogicalStatus} onChange={e => setPedagogicalStatus(e.target.value as PedagogicalStatus)} disabled={readOnly}
+                            <label htmlFor="task-modal-status" className="text-sm font-semibold uppercase text-sub">Estado pedagógico</label>
+                            <select id="task-modal-status" value={pedagogicalStatus} onChange={e => setPedagogicalStatus(e.target.value as PedagogicalStatus)} disabled={readOnly}
                                 className="w-full bg-lme-surface border border-line rounded-xl px-4 py-3 text-ink focus:outline-none focus:border-sky disabled:cursor-not-allowed disabled:opacity-50">
                                 <option value="not_started">Por empezar</option>
                                 <option value="in_progress">En marcha</option>

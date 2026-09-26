@@ -613,6 +613,18 @@ body.theme-tablet h3 {
   outline-offset: 2px;
 }
 
+/* ── Color de mundo en TEXTO: variante oscura ──────────────────────────
+   Los tokens vivos (--color-fisico…) valen para fondos, bordes y la franja
+   de los Cinco Mundos, pero como texto pequeño no llegan a 4,5:1 sobre el
+   papel (#e8613f sobre #cbc5ba = 2:1). Estas variantes cumplen ≥4,5:1 en
+   todos los papeles del modo color y del modo e-ink (peor caso #cbc5ba).
+   Regla sin capa: prevalece sobre las utilidades de Tailwind. ────────── */
+.text-fisico    { color: #8a2c14; }
+.text-social    { color: #6b4a0c; }
+.text-emocional { color: #30531c; }
+.text-mental    { color: #284b5c; }
+.text-interior  { color: #224750; }
+
 /* Smooth scrolling for snap containers */
 .snap-x {
   scroll-snap-type: x mandatory;

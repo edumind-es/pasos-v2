@@ -69,7 +69,7 @@ export function TaskCard({
     compact = true,
 }: Props) {
     const visualMode = useStore((state) => state.visualMode);
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
         id: task.id,
         data: { type: 'Task', task },
         disabled: selectionMode || readOnly,
@@ -109,7 +109,9 @@ export function TaskCard({
 
     return (
         <div
-            ref={setNodeRef}
+            // La tarjeta es a la vez nodo arrastrable y activador: así Enter/Espacio
+            // sobre los botones internos («Abrir», «Duplicar»…) no inician un arrastre.
+            ref={(node) => { setNodeRef(node); setActivatorNodeRef(node); }}
             style={{
                 ...style,
                 ...(task.color ? { borderLeft: `4px solid ${task.color}` } : {}),
