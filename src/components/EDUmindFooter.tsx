@@ -151,13 +151,20 @@ export default function EDUmindFooter({
                         </>
                     )}
                 </p>
+                {/* Fórmula de atribución que exige la licencia CC BY-NC-SA de ARASAAC */}
+                <p className="footer-credits" style={{ marginTop: '0.35rem', fontSize: '0.875rem' }}>
+                    Autor pictogramas: Sergio Palao. Origen: ARASAAC (<a href="http://www.arasaac.org" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>http://www.arasaac.org</a>).
+                    Licencia: CC BY-NC-SA. Propiedad: Gobierno de Aragón (España).
+                    <span style={{ margin: '0 0.5rem' }}>·</span>
+                    <a href={`${repoUrl}/blob/main/CREDITS.md`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Créditos y tipografías</a>
+                </p>
             </div>
 
             <div className="footer-legal" style={{
                 marginTop: '1rem',
                 textAlign: 'center',
                 fontSize: '0.875rem',
-                color: '#6b7280'
+                color: 'var(--lme-text-secondary)' /* antes #6b7280: 3,4:1 sobre papel */
             }}>
                 <a href="https://edumind.es/es/legal/privacidad" target="_blank" rel="noopener noreferrer" style={{
                     color: 'inherit',
