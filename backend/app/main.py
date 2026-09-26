@@ -17,6 +17,7 @@ settings = get_settings()
 configure_logging()
 logger = logging.getLogger("pasos.api")
 
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # En producción, no arrancar con secretos de ejemplo o demasiado cortos.

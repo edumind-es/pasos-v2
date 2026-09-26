@@ -63,13 +63,13 @@ def _document_version_response(version: BoardDocumentVersion) -> BoardDocumentVe
 def _validate_board_task_links(board_snapshot: dict, linked_task_ids: list[str]) -> None:
     board_tasks = board_snapshot.get("tasks", []) if isinstance(board_snapshot, dict) else []
     valid_task_ids = {
-        task.get("id")
-        for task in board_tasks
-        if isinstance(task, dict) and task.get("id")
+        task.get("id") for task in board_tasks if isinstance(task, dict) and task.get("id")
     }
     invalid_ids = sorted(set(linked_task_ids) - valid_task_ids)
     if invalid_ids:
-        raise ApiError(422, "document_invalid_tasks", f"Unknown board task ids: {', '.join(invalid_ids)}")
+        raise ApiError(
+            422, "document_invalid_tasks", f"Unknown board task ids: {', '.join(invalid_ids)}"
+        )
 
 
 def _validate_document_payload(

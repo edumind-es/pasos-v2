@@ -96,6 +96,12 @@ const PROMPTS_GUIDE: PromptGuide[] = [
         description: "Organiza tareas en columnas (Materiales, Pasos, Revisión) usando Markdown.",
         prompt: "Actúa como pedagogo. Diseña una actividad de [TEMA] en tablero Kanban formato Markdown.\nUsa '## Nombre Columna' para columnas.\nUsa '- Tarea' para tareas.",
         example: "## Materiales\n- Tijeras\n- Papel\n## Pasos\n- Recortar\n- Pegar"
+    },
+    {
+        title: "Nivel 3: Sesión de aula (archivo para arrastrar)",
+        description: "Pide la sesión en este formato, guárdala como .md y arrástrala sobre el tablero: Pasos la reconoce y crea Apertura, Núcleo, Cierre y Recordatorios.",
+        prompt: "Actúa como maestro/a. A partir de esta programación: [PEGAR PROGRAMACIÓN], genera la sesión en Markdown con esta estructura exacta:\n\n# {Día} {Fecha} · {Hora} · {Título de la sesión}\n## Secuencia\n- [ ] **Etiqueta corta (2 min)** — explicación de lo que se hace\n### Núcleo\n- [ ] ...\n## Accesibilidad\n- [ ] ...\n## Notas\n...\n\nLa etiqueta en negrita debe ser corta y concreta (es la que busca el pictograma); la explicación larga va después del guion.",
+        example: "# Lun 15/09 · 10:00 · Equilibrios\n## Secuencia\n- [ ] **Apertura (2 min)** — semáforo emocional: cada alumno coloca su marcador\n### Núcleo\n- [ ] Circuito de equilibrios por parejas"
     }
 ];
 

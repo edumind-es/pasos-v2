@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from app.api.v1.dtos import (
+    BoardResponse,
     TimelineAlertResponse,
     TimelineCapacityResponse,
     TimelineItemResponse,
@@ -14,7 +15,15 @@ from app.api.v1.dtos import (
 from app.models.user import User
 from app.services.board_service import list_user_boards
 
-_COMPLETED_COLUMN_TOKENS = ("terminado", "hecho", "validado", "publicado", "cerrado", "done", "complete")
+_COMPLETED_COLUMN_TOKENS = (
+    "terminado",
+    "hecho",
+    "validado",
+    "publicado",
+    "cerrado",
+    "done",
+    "complete",
+)
 
 
 @dataclass
@@ -37,6 +46,120 @@ def _is_completed(column_title: str | None, pedagogical_status: str | None) -> b
     return pedagogical_status == "validated"
 
 
+def _items_del_tablero(board: BoardResponse, now: datetime) -> list[TimelineItemResponse]:
+    """Deriva los hitos de un tablero.
+
+    Vive fuera del bucle a propósito: `build_item` es un cierre sobre `cache`,
+    `task_map` y `board`, y definirlo dentro del bucle hacía que capturase la
+    variable de iteración (B023). Hoy se consumía en la misma vuelta y no daba
+    problemas, pero bastaba con guardar la función para más tarde para que
+    empezara a leer los datos del tablero equivocado.
+    """
+    items: list[TimelineItemResponse] = []
+    column_map = {column.id: column.title for column in board.snapshot.columns}
+    task_map = {task.id: task for task in board.snapshot.tasks}
+    cache: dict[str, _DerivedTimelineItem] = {}
+
+    def build_item(task_id: str, path: set[str] | None = None) -> _DerivedTimelineItem:
+        if task_id in cache:
+            return cache[task_id]
+
+        task = task_map[task_id]
+        path = path or set()
+        if task_id in path:
+            response = TimelineItemResponse(
+                task_id=task.id,
+                board_id=board.id,
+                board_title=board.title,
+                title=task.title,
+                task_type=task.taskType or "task",
+                owner_label=task.ownerLabel,
+                effort_points=task.effortPoints or 0,
+                column_title=column_map.get(task.columnId),
+                dependency_task_ids=task.dependencyTaskIds,
+                blocked_by_task_ids=[],
+                start_at=_normalize_datetime(task.startDate),
+                end_at=_normalize_datetime(task.dueDate),
+                is_blocked=False,
+                is_delayed=False,
+                is_milestone=task.taskType == "milestone",
+                is_completed=_is_completed(column_map.get(task.columnId), task.pedagogicalStatus),
+                context_type=board.context_type,
+                organization_id=board.organization_id,
+                team_id=board.team_id,
+            )
+            return _DerivedTimelineItem(response=response)
+
+        next_path = set(path)
+        next_path.add(task_id)
+        dependency_items = [
+            build_item(dependency_id, next_path)
+            for dependency_id in task.dependencyTaskIds
+            if dependency_id in task_map
+        ]
+        dependency_end_dates = [
+            dependency.response.end_at
+            for dependency in dependency_items
+            if dependency.response.end_at is not None
+        ]
+
+        explicit_start = _normalize_datetime(task.startDate)
+        due_at = _normalize_datetime(task.dueDate)
+        derived_start = explicit_start
+        if derived_start is None and dependency_end_dates:
+            derived_start = max(dependency_end_dates)
+        if derived_start is None:
+            derived_start = due_at
+
+        end_at = due_at or derived_start
+        if derived_start and end_at and derived_start > end_at:
+            derived_start = end_at
+
+        column_title = column_map.get(task.columnId)
+        is_completed = _is_completed(column_title, task.pedagogicalStatus)
+        blocked_by_task_ids = [
+            dependency.response.task_id
+            for dependency in dependency_items
+            if not dependency.response.is_completed
+        ]
+        is_blocked = len(blocked_by_task_ids) > 0
+        is_delayed = bool(end_at and end_at < now and not is_completed)
+
+        response = TimelineItemResponse(
+            task_id=task.id,
+            board_id=board.id,
+            board_title=board.title,
+            title=task.title,
+            task_type=task.taskType or "task",
+            owner_label=task.ownerLabel,
+            effort_points=task.effortPoints or 0,
+            column_title=column_title,
+            dependency_task_ids=task.dependencyTaskIds,
+            blocked_by_task_ids=blocked_by_task_ids,
+            start_at=derived_start,
+            end_at=end_at,
+            is_blocked=is_blocked,
+            is_delayed=is_delayed,
+            is_milestone=task.taskType == "milestone",
+            is_completed=is_completed,
+            context_type=board.context_type,
+            organization_id=board.organization_id,
+            team_id=board.team_id,
+        )
+        derived_item = _DerivedTimelineItem(response=response)
+        cache[task_id] = derived_item
+        return derived_item
+
+    for task in board.snapshot.tasks:
+        has_schedule_signal = bool(
+            task.startDate or task.dueDate or task.dependencyTaskIds or task.taskType == "milestone"
+        )
+        if not has_schedule_signal:
+            continue
+        items.append(build_item(task.id).response)
+    return items
+
+
 def get_timeline_overview(
     db: Session,
     user: User,
@@ -53,105 +176,7 @@ def get_timeline_overview(
     items: list[TimelineItemResponse] = []
 
     for board in boards:
-        column_map = {column.id: column.title for column in board.snapshot.columns}
-        task_map = {task.id: task for task in board.snapshot.tasks}
-        cache: dict[str, _DerivedTimelineItem] = {}
-
-        def build_item(task_id: str, path: set[str] | None = None) -> _DerivedTimelineItem:
-            if task_id in cache:
-                return cache[task_id]
-
-            task = task_map[task_id]
-            path = path or set()
-            if task_id in path:
-                response = TimelineItemResponse(
-                    task_id=task.id,
-                    board_id=board.id,
-                    board_title=board.title,
-                    title=task.title,
-                    task_type=task.taskType or "task",
-                    owner_label=task.ownerLabel,
-                    effort_points=task.effortPoints or 0,
-                    column_title=column_map.get(task.columnId),
-                    dependency_task_ids=task.dependencyTaskIds,
-                    blocked_by_task_ids=[],
-                    start_at=_normalize_datetime(task.startDate),
-                    end_at=_normalize_datetime(task.dueDate),
-                    is_blocked=False,
-                    is_delayed=False,
-                    is_milestone=task.taskType == "milestone",
-                    is_completed=_is_completed(column_map.get(task.columnId), task.pedagogicalStatus),
-                    context_type=board.context_type,
-                    organization_id=board.organization_id,
-                    team_id=board.team_id,
-                )
-                return _DerivedTimelineItem(response=response)
-
-            next_path = set(path)
-            next_path.add(task_id)
-            dependency_items = [
-                build_item(dependency_id, next_path)
-                for dependency_id in task.dependencyTaskIds
-                if dependency_id in task_map
-            ]
-            dependency_end_dates = [
-                dependency.response.end_at
-                for dependency in dependency_items
-                if dependency.response.end_at is not None
-            ]
-
-            explicit_start = _normalize_datetime(task.startDate)
-            due_at = _normalize_datetime(task.dueDate)
-            derived_start = explicit_start
-            if derived_start is None and dependency_end_dates:
-                derived_start = max(dependency_end_dates)
-            if derived_start is None:
-                derived_start = due_at
-
-            end_at = due_at or derived_start
-            if derived_start and end_at and derived_start > end_at:
-                derived_start = end_at
-
-            column_title = column_map.get(task.columnId)
-            is_completed = _is_completed(column_title, task.pedagogicalStatus)
-            blocked_by_task_ids = [
-                dependency.response.task_id
-                for dependency in dependency_items
-                if not dependency.response.is_completed
-            ]
-            is_blocked = len(blocked_by_task_ids) > 0
-            is_delayed = bool(end_at and end_at < now and not is_completed)
-
-            response = TimelineItemResponse(
-                task_id=task.id,
-                board_id=board.id,
-                board_title=board.title,
-                title=task.title,
-                task_type=task.taskType or "task",
-                owner_label=task.ownerLabel,
-                effort_points=task.effortPoints or 0,
-                column_title=column_title,
-                dependency_task_ids=task.dependencyTaskIds,
-                blocked_by_task_ids=blocked_by_task_ids,
-                start_at=derived_start,
-                end_at=end_at,
-                is_blocked=is_blocked,
-                is_delayed=is_delayed,
-                is_milestone=task.taskType == "milestone",
-                is_completed=is_completed,
-                context_type=board.context_type,
-                organization_id=board.organization_id,
-                team_id=board.team_id,
-            )
-            derived_item = _DerivedTimelineItem(response=response)
-            cache[task_id] = derived_item
-            return derived_item
-
-        for task in board.snapshot.tasks:
-            has_schedule_signal = bool(task.startDate or task.dueDate or task.dependencyTaskIds or task.taskType == "milestone")
-            if not has_schedule_signal:
-                continue
-            items.append(build_item(task.id).response)
+        items.extend(_items_del_tablero(board, now))
 
     items.sort(
         key=lambda item: (
@@ -189,7 +214,9 @@ def get_timeline_overview(
                     message="La tarjeta depende de otras tareas todavía abiertas.",
                 )
             )
-        due_soon = bool(item.end_at and item.end_at <= now + timedelta(days=3) and not item.is_completed)
+        due_soon = bool(
+            item.end_at and item.end_at <= now + timedelta(days=3) and not item.is_completed
+        )
         if item.is_milestone and (item.is_delayed or item.is_blocked or due_soon):
             alerts.append(
                 TimelineAlertResponse(
@@ -200,7 +227,10 @@ def get_timeline_overview(
                     board_title=item.board_title,
                     title=item.title,
                     owner_label=item.owner_label,
-                    message="El hito necesita seguimiento porque está bloqueado, vencido o demasiado próximo.",
+                    message=(
+                        "El hito necesita seguimiento porque está bloqueado, "
+                        "vencido o demasiado próximo."
+                    ),
                 )
             )
 
@@ -227,7 +257,11 @@ def get_timeline_overview(
 
     capacities = sorted(
         capacities_map.values(),
-        key=lambda capacity: (-capacity.effort_points, -capacity.task_count, capacity.owner_label.lower()),
+        key=lambda capacity: (
+            -capacity.effort_points,
+            -capacity.task_count,
+            capacity.owner_label.lower(),
+        ),
     )
 
     blocked_count = sum(1 for item in items if item.is_blocked)

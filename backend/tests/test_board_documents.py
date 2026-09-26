@@ -69,7 +69,9 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     app.dependency_overrides.clear()
 
 
-def test_board_documents_create_update_list_versions_and_delete(client: TestClient, db_session: Session) -> None:
+def test_board_documents_create_update_list_versions_and_delete(
+    client: TestClient, db_session: Session
+) -> None:
     teacher = create_user(
         db_session,
         user_id="teacher-documents",

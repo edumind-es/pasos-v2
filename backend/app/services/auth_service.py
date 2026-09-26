@@ -47,7 +47,9 @@ def register_user(db: Session, payload: AuthRegisterRequest) -> User:
 
 
 def authenticate_user(db: Session, payload: AuthLoginRequest) -> User:
-    user = db.scalar(select(User).where(User.email == payload.email.lower(), User.is_active.is_(True)))
+    user = db.scalar(
+        select(User).where(User.email == payload.email.lower(), User.is_active.is_(True))
+    )
     if not user or not verify_password(payload.password, user.password_hash):
         raise ApiError(401, "invalid_credentials", "Email or password is invalid")
     return user
@@ -116,7 +118,11 @@ def rotate_refresh_token(
 
     refresh_record.revoked_at = now
     new_tokens = issue_tokens(db, user, ip_address, user_agent)
-    latest = db.scalar(select(RefreshToken).where(RefreshToken.jti == decode_refresh_token(new_tokens["refresh_token"])["jti"]))
+    latest = db.scalar(
+        select(RefreshToken).where(
+            RefreshToken.jti == decode_refresh_token(new_tokens["refresh_token"])["jti"]
+        )
+    )
     if latest:
         latest.rotated_from_id = refresh_record.id
         db.commit()

@@ -45,7 +45,9 @@ def _serialize_evidence_entries(values: list[TaskEvidenceEntryDTO]) -> list[dict
     return list(by_task.values())
 
 
-def _merge_evidence_entries(current: list[dict], incoming: list[TaskEvidenceEntryDTO]) -> list[dict]:
+def _merge_evidence_entries(
+    current: list[dict], incoming: list[TaskEvidenceEntryDTO]
+) -> list[dict]:
     merged: dict[str, dict] = {}
     for entry in current:
         task_id = entry.get("task_id")
@@ -234,7 +236,9 @@ def add_teacher_feedback(
 ) -> BoardLearnerInsightResponse:
     board, role = get_board_for_user(db, board_id, user)
     if role not in {"owner", "editor"}:
-        raise ApiError(403, "board_forbidden", "Insufficient permissions to review learner activity")
+        raise ApiError(
+            403, "board_forbidden", "Insufficient permissions to review learner activity"
+        )
 
     share = get_active_share_by_code(db, payload.share_code)
     if share.board_id != board.id:
@@ -251,24 +255,30 @@ def add_teacher_feedback(
 
     now = utcnow()
     feedback_entries = list(learner.feedback_entries)
-    feedback_entries.append({
-        "task_id": payload.task_id,
-        "message": payload.message,
-        "status": payload.status,
-        "author_label": user.display_name or user.email,
-        "created_at": now.isoformat(),
-    })
+    feedback_entries.append(
+        {
+            "task_id": payload.task_id,
+            "message": payload.message,
+            "status": payload.status,
+            "author_label": user.display_name or user.email,
+            "created_at": now.isoformat(),
+        }
+    )
     learner.feedback_entries = feedback_entries
 
     validated_task_ids = _unique_task_ids(learner.validated_task_ids)
     if payload.status == "validated":
         validated_task_ids = _unique_task_ids([*validated_task_ids, payload.task_id])
     elif payload.status == "needs_revision":
-        validated_task_ids = [task_id for task_id in validated_task_ids if task_id != payload.task_id]
+        validated_task_ids = [
+            task_id for task_id in validated_task_ids if task_id != payload.task_id
+        ]
     learner.validated_task_ids = validated_task_ids
 
     if payload.resolve_help_request:
-        learner.help_task_ids = [task_id for task_id in learner.help_task_ids if task_id != payload.task_id]
+        learner.help_task_ids = [
+            task_id for task_id in learner.help_task_ids if task_id != payload.task_id
+        ]
 
     learner.last_event_type = "teacher_feedback_added"
     record_board_activity(
@@ -323,7 +333,11 @@ def get_board_insights(db: Session, board_id: str, user: User) -> BoardInsightsR
         if total_tasks > 0 and completed_count >= total_tasks:
             completed_learners += 1
         share = next((item for item in shares if item.id == learner.share_id), None)
-        learner_responses.append(_learner_insight_response(learner, share_code=share.code if share else None, total_tasks=total_tasks))
+        learner_responses.append(
+            _learner_insight_response(
+                learner, share_code=share.code if share else None, total_tasks=total_tasks
+            )
+        )
 
     recent_events = [
         BoardActivityEventResponse(
@@ -352,11 +366,12 @@ def get_board_insights(db: Session, board_id: str, user: User) -> BoardInsightsR
 
 
 def purge_old_activity_events(db: Session, *, days: int = 90) -> int:
-    """Elimina eventos de actividad con más de `days` días. Retorna el número de filas eliminadas."""
+    """Elimina eventos de actividad con más de `days` días.
+
+    Devuelve el número de filas eliminadas.
+    """
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    result = db.execute(
-        delete(BoardActivityEvent).where(BoardActivityEvent.occurred_at < cutoff)
-    )
+    result = db.execute(delete(BoardActivityEvent).where(BoardActivityEvent.occurred_at < cutoff))
     db.commit()
     return result.rowcount
 

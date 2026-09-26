@@ -18,7 +18,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { User, ArrowRight, Shield, GraduationCap, Zap, AlertTriangle, Info, CheckCircle, KeyRound } from 'lucide-react';
+import { User, ArrowRight, Shield, GraduationCap, Zap, AlertTriangle, Info, CheckCircle, KeyRound, Smartphone } from 'lucide-react';
 import { useStore, type UserRole } from '../store/boardStore';
 import { generateSecureId } from '../utils/security';
 import {
@@ -32,6 +32,7 @@ import {
     type ProAuthTokenResponse,
 } from '../services/pasosApi';
 import { logAppEvent } from '../services/appTelemetry';
+import { EntrarConMovilDialog } from '../components/EntrarConMovil';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -43,6 +44,7 @@ export default function Login() {
     const [role, setRole] = useState<UserRole>('student');
     const [showWarning, setShowWarning] = useState(true);
     const [proIntent, setProIntent] = useState<'login' | 'register'>('login');
+    const [movilAbierto, setMovilAbierto] = useState(false);
     const [proEmail, setProEmail] = useState('');
     const [proPassword, setProPassword] = useState('');
     const [proDisplayName, setProDisplayName] = useState('');
@@ -208,19 +210,42 @@ export default function Login() {
         }
     };
 
-    const handleSsoAccess = () => {
+    /** A dónde volver tras entrar, por SSO o con el móvil. */
+    const destinoTrasAcceso = () => {
         const params = new URLSearchParams(location.search);
         const nextPath = params.get('next');
         const embedded = params.get('embed') === '1' || params.get('board') === '1';
         const embeddedNext = embedded ? '/aula?embed=1&board=1' : '/';
-        const safeNext = nextPath && nextPath.startsWith('/') && !nextPath.startsWith('//') && !nextPath.startsWith('/api/')
+        return nextPath && nextPath.startsWith('/') && !nextPath.startsWith('//') && !nextPath.startsWith('/api/')
             ? nextPath
             : embeddedNext;
+    };
 
+    const handleSsoAccess = () => {
         setProError(null);
         setProLoading(true);
-        void startSsoLogin(safeNext);
+        void startSsoLogin(destinoTrasAcceso());
     };
+
+    // Aprobada en el móvil: el backend ya dejó las cookies de sesión, así que
+    // se termina por el mismo camino que el SSO normal (?sso=1).
+    const handleMovilAprobada = () => {
+        setMovilAbierto(false);
+        navigate(`/login?${new URLSearchParams({ sso: '1', next: destinoTrasAcceso() }).toString()}`, { replace: true });
+    };
+
+    const botonMovil = (
+        <button
+            type="button"
+            onClick={() => setMovilAbierto(true)}
+            disabled={proLoading}
+            className="w-full py-3 border border-mint/60 text-mint font-semibold rounded-2xl flex items-center justify-center gap-2.5 hover:bg-mint/10 transition-colors disabled:opacity-60 mb-5"
+        >
+            <Smartphone className="w-5 h-5" />
+            Entrar con el móvil
+            <span className="text-xs font-normal text-sub">· pizarras y ordenadores del aula</span>
+        </button>
+    );
 
     return (
         <div className="min-h-screen flex flex-col bg-lme-background animate-in fade-in duration-300">
@@ -259,12 +284,13 @@ export default function Login() {
                                 type="button"
                                 onClick={handleSsoAccess}
                                 disabled={proLoading}
-                                className="w-full py-3.5 bg-mint text-bg0 font-bold rounded-2xl flex items-center justify-center gap-2.5 hover:bg-mint/90 transition-colors disabled:opacity-60 shadow-md shadow-mint/20 mb-5"
+                                className="w-full py-3.5 bg-mint text-bg0 font-bold rounded-2xl flex items-center justify-center gap-2.5 hover:bg-mint/90 transition-colors disabled:opacity-60 shadow-md shadow-mint/20 mb-3"
                             >
                                 <KeyRound className="w-5 h-5" />
                                 {proLoading ? 'Conectando…' : 'Entrar con EDUmind SSO'}
                                 <ArrowRight className="w-4 h-4" />
                             </button>
+                            {botonMovil}
 
                             {/* Divider */}
                             <div className="flex items-center gap-3 mb-5">
@@ -619,6 +645,7 @@ export default function Login() {
                                 {proLoading ? 'Conectando...' : 'Entrar con EDUmind SSO'}
                                 <ArrowRight className="w-4 h-4" />
                             </button>
+                            {botonMovil}
 
                             <div className="flex gap-2">
                                 <button
@@ -710,6 +737,10 @@ export default function Login() {
                 </div>
 
             </div>{/* fin .hidden */}
+
+            {movilAbierto && (
+                <EntrarConMovilDialog onClose={() => setMovilAbierto(false)} onAprobada={handleMovilAprobada} />
+            )}
         </div>
     );
 }

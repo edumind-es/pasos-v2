@@ -22,4 +22,6 @@ class LearningAssignment(TimestampMixin, Base):
     target_key: Mapped[str | None] = mapped_column(String(120), index=True)
     due_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", index=True)
-    metadata_json: Mapped[dict] = mapped_column("metadata", SnapshotType, nullable=False, default=dict)
+    metadata_json: Mapped[dict] = mapped_column(
+        "metadata", SnapshotType, nullable=False, default=dict
+    )

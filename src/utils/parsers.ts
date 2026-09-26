@@ -153,14 +153,15 @@ function parseMarkdown(md: string, title: string): ParseResult {
             continue;
         }
 
-        // 1. Explicit Headers (##)
-        if (trimmed.startsWith('## ')) {
+        // 1. Explicit Headers (##, ###, ...)
+        const headingMatch = trimmed.match(/^#{2,6}\s+(.*)$/);
+        if (headingMatch) {
             if (!hasCustomColumns) {
                 columns = [];
                 hasCustomColumns = true;
             }
 
-            const colTitle = trimmed.substring(2).trim();
+            const colTitle = headingMatch[1].trim();
             let col = columns.find(c => c.title.toLowerCase() === colTitle.toLowerCase());
             if (!col) {
                 const order = columns.length;
@@ -173,7 +174,7 @@ function parseMarkdown(md: string, title: string): ParseResult {
 
         // 2. Bullets
         // Supports -, *, and •
-        const bulletMatch = trimmed.match(/^([-*•])\s+(?:\[.\].*\s)?(.*)/);
+        const bulletMatch = trimmed.match(/^([-*•])\s+(?:\[[ xX]\]\s*)?(.*)$/);
         if (bulletMatch) {
             const taskTitle = bulletMatch[2];
 
@@ -197,7 +198,7 @@ function parseMarkdown(md: string, title: string): ParseResult {
         // 3. Implicit Headers (Permissive Mode)
         // If it's NOT a bullet, and the line is short without trailing punctuation,
         // treat it as a column header. Otherwise treat it as a plain-text task.
-        if (!trimmed.startsWith('# ') && !trimmed.startsWith('-') && !trimmed.startsWith('*')) {
+        if (!trimmed.startsWith('#') && !trimmed.startsWith('-') && !trimmed.startsWith('*')) {
             const isLikelyHeader = trimmed.length < 40 && !/[.,;!?]$/.test(trimmed) && !/^\d+\./.test(trimmed);
 
             if (isLikelyHeader) {

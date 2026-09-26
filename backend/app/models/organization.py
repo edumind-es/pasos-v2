@@ -15,4 +15,6 @@ class Organization(TimestampMixin, Base):
     slug: Mapped[str] = mapped_column(String(120), unique=True, index=True, nullable=False)
     plan_type: Mapped[str] = mapped_column(String(24), nullable=False, default="school")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    metadata_json: Mapped[dict] = mapped_column("metadata", SnapshotType, nullable=False, default=dict)
+    metadata_json: Mapped[dict] = mapped_column(
+        "metadata", SnapshotType, nullable=False, default=dict
+    )

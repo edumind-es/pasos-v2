@@ -105,7 +105,9 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     app.dependency_overrides.clear()
 
 
-def test_timeline_overview_reports_blocked_delayed_and_capacity(client: TestClient, db_session: Session) -> None:
+def test_timeline_overview_reports_blocked_delayed_and_capacity(
+    client: TestClient, db_session: Session
+) -> None:
     teacher = create_user(
         db_session,
         user_id="teacher-timeline",

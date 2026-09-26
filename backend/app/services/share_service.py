@@ -6,7 +6,7 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.v1.dtos import ShareCreateRequest, ShareResponse, ShareResolveResponse
+from app.api.v1.dtos import ShareCreateRequest, ShareResolveResponse, ShareResponse
 from app.core.config import get_settings
 from app.core.errors import ApiError
 from app.models.board import Board

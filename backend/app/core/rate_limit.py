@@ -38,4 +38,3 @@ def rate_limit(scope: str, limit: int, window_seconds: int) -> Callable[[Request
             raise ApiError(429, "rate_limited", "Too many requests")
 
     return dependency
-

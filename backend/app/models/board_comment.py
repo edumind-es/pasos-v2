@@ -15,4 +15,6 @@ class BoardComment(TimestampMixin, Base):
     author_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     author_label: Mapped[str | None] = mapped_column(String(120))
     message: Mapped[str] = mapped_column(String(2000), nullable=False)
-    mentions_json: Mapped[list[str]] = mapped_column("mentions", SnapshotType, nullable=False, default=list)
+    mentions_json: Mapped[list[str]] = mapped_column(
+        "mentions", SnapshotType, nullable=False, default=list
+    )

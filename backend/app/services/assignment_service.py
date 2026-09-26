@@ -14,7 +14,9 @@ from app.models.user import User
 from app.services.board_service import get_board_for_user, list_user_boards
 
 
-def _assignment_response(assignment: LearningAssignment, board: Board) -> LearningAssignmentResponse:
+def _assignment_response(
+    assignment: LearningAssignment, board: Board
+) -> LearningAssignmentResponse:
     return LearningAssignmentResponse(
         id=assignment.id,
         board_id=assignment.board_id,
@@ -32,7 +34,9 @@ def _assignment_response(assignment: LearningAssignment, board: Board) -> Learni
     )
 
 
-def list_board_assignments(db: Session, board_id: str, user: User) -> list[LearningAssignmentResponse]:
+def list_board_assignments(
+    db: Session, board_id: str, user: User
+) -> list[LearningAssignmentResponse]:
     board, _role = get_board_for_user(db, board_id, user)
     assignments = db.scalars(
         select(LearningAssignment)
@@ -50,7 +54,9 @@ def create_board_assignment(
 ) -> LearningAssignmentResponse:
     board, role = get_board_for_user(db, board_id, user)
     if role not in {"owner", "editor"}:
-        raise ApiError(403, "assignment_forbidden", "Insufficient permissions to create assignments")
+        raise ApiError(
+            403, "assignment_forbidden", "Insufficient permissions to create assignments"
+        )
 
     assignment = LearningAssignment(
         id=str(uuid4()),
@@ -74,7 +80,9 @@ def create_board_assignment(
 def delete_board_assignment(db: Session, board_id: str, assignment_id: str, user: User) -> None:
     board, role = get_board_for_user(db, board_id, user)
     if role not in {"owner", "editor"}:
-        raise ApiError(403, "assignment_forbidden", "Insufficient permissions to delete assignments")
+        raise ApiError(
+            403, "assignment_forbidden", "Insufficient permissions to delete assignments"
+        )
 
     assignment = db.scalar(
         select(LearningAssignment).where(
@@ -102,13 +110,14 @@ def list_today_assignments(
         return []
 
     board_map = {
-        board.id: db.scalar(select(Board).where(Board.id == board.id))
-        for board in visible_boards
+        board.id: db.scalar(select(Board).where(Board.id == board.id)) for board in visible_boards
     }
 
     start_date = reference_date or datetime.now(timezone.utc).date()
     start_dt = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
-    end_dt = datetime.combine(start_date + timedelta(days=days_ahead), time.max, tzinfo=timezone.utc)
+    end_dt = datetime.combine(
+        start_date + timedelta(days=days_ahead), time.max, tzinfo=timezone.utc
+    )
 
     assignments = db.scalars(
         select(LearningAssignment)

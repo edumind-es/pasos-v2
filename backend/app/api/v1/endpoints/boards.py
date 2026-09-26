@@ -5,25 +5,35 @@ from fastapi import APIRouter, Depends
 from app.api.v1.dtos import (
     BoardCommentCreateRequest,
     BoardCommentResponse,
-    BoardMeetingCreateRequest,
-    BoardMeetingResponse,
     BoardCreateRequest,
     BoardInsightsResponse,
     BoardLearnerInsightResponse,
-    LearningAssignmentCreateRequest,
-    LearningAssignmentResponse,
+    BoardMeetingCreateRequest,
+    BoardMeetingResponse,
     BoardResponse,
     BoardSnapshotDTO,
     BoardUpdateRequest,
     LearnerFeedbackRequest,
+    LearningAssignmentCreateRequest,
+    LearningAssignmentResponse,
     ShareCreateRequest,
     ShareResponse,
 )
 from app.core.deps import DbSession, get_current_user
 from app.models.user import User
 from app.services.activity_service import add_teacher_feedback, get_board_insights
-from app.services.assignment_service import create_board_assignment, delete_board_assignment, list_board_assignments
-from app.services.board_service import create_board, delete_board, get_board_for_user, list_user_boards, update_board
+from app.services.assignment_service import (
+    create_board_assignment,
+    delete_board_assignment,
+    list_board_assignments,
+)
+from app.services.board_service import (
+    create_board,
+    delete_board,
+    get_board_for_user,
+    list_user_boards,
+    update_board,
+)
 from app.services.comment_service import create_board_comment, list_board_comments
 from app.services.meeting_service import create_board_meeting, list_board_meetings
 from app.services.share_service import create_share
@@ -39,7 +49,9 @@ def list_boards(
     team_id: str | None = None,
     limit: int = 200,
 ) -> list[BoardResponse]:
-    return list_user_boards(db, current_user, organization_id=organization_id, team_id=team_id, limit=limit)
+    return list_user_boards(
+        db, current_user, organization_id=organization_id, team_id=team_id, limit=limit
+    )
 
 
 @router.post("", response_model=BoardResponse, status_code=201)

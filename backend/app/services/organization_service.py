@@ -7,10 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.v1.dtos import (
-    OrgMemberRoleUpdateRequest,
-    OrgMembershipResponse,
     OrganizationCreateRequest,
     OrganizationResponse,
+    OrgMemberRoleUpdateRequest,
+    OrgMembershipResponse,
     TeamCreateRequest,
     TeamResponse,
 )
@@ -18,9 +18,9 @@ from app.core.errors import ApiError
 from app.models.organization import Organization
 from app.models.organization_membership import OrganizationMembership
 from app.models.team import Team
-from app.services.user_identity_service import to_user_response
 from app.models.team_membership import TeamMembership
 from app.models.user import User
+from app.services.user_identity_service import to_user_response
 
 SLUG_RE = re.compile(r"[^a-z0-9]+")
 
@@ -58,7 +58,9 @@ def _team_response(team: Team, role: str | None) -> TeamResponse:
     )
 
 
-def _require_org_membership(db: Session, organization_id: str, user: User) -> OrganizationMembership:
+def _require_org_membership(
+    db: Session, organization_id: str, user: User
+) -> OrganizationMembership:
     membership = db.scalar(
         select(OrganizationMembership).where(
             OrganizationMembership.organization_id == organization_id,
@@ -82,10 +84,15 @@ def list_user_organizations(db: Session, user: User) -> list[OrganizationRespons
         )
         .order_by(Organization.updated_at.desc())
     ).all()
-    return [_organization_response(organization, membership.role) for membership, organization in memberships]
+    return [
+        _organization_response(organization, membership.role)
+        for membership, organization in memberships
+    ]
 
 
-def create_organization(db: Session, user: User, payload: OrganizationCreateRequest) -> OrganizationResponse:
+def create_organization(
+    db: Session, user: User, payload: OrganizationCreateRequest
+) -> OrganizationResponse:
     slug = payload.slug or slugify(payload.name)
     existing = db.scalar(select(Organization).where(Organization.slug == slug))
     if existing:
@@ -116,7 +123,9 @@ def create_organization(db: Session, user: User, payload: OrganizationCreateRequ
 def _require_org_admin(db: Session, organization_id: str, user: User) -> OrganizationMembership:
     membership = _require_org_membership(db, organization_id, user)
     if membership.role not in {"organization_admin", "leadership"}:
-        raise ApiError(403, "org_forbidden", "Insufficient permissions to manage organization members")
+        raise ApiError(
+            403, "org_forbidden", "Insufficient permissions to manage organization members"
+        )
     return membership
 
 
@@ -156,7 +165,9 @@ def update_org_member_role(
     _require_org_admin(db, organization_id, current_user)
 
     if target_user_id == current_user.id:
-        raise ApiError(400, "cannot_edit_own_role", "No puedes cambiar tu propio rol en la organización")
+        raise ApiError(
+            400, "cannot_edit_own_role", "No puedes cambiar tu propio rol en la organización"
+        )
 
     membership = db.scalar(
         select(OrganizationMembership).where(
@@ -187,7 +198,9 @@ def remove_org_member(
     _require_org_admin(db, organization_id, current_user)
 
     if target_user_id == current_user.id:
-        raise ApiError(400, "cannot_remove_self", "No puedes eliminarte a ti mismo de la organización")
+        raise ApiError(
+            400, "cannot_remove_self", "No puedes eliminarte a ti mismo de la organización"
+        )
 
     membership = db.scalar(
         select(OrganizationMembership).where(
@@ -216,7 +229,9 @@ def list_organization_teams(db: Session, organization_id: str, user: User) -> li
         .where(Team.organization_id == organization_id, Team.is_archived.is_(False))
         .order_by(Team.updated_at.desc())
     ).all()
-    return [_team_response(team, membership.role if membership else None) for team, membership in rows]
+    return [
+        _team_response(team, membership.role if membership else None) for team, membership in rows
+    ]
 
 
 def create_team(
@@ -261,15 +276,23 @@ def create_team(
 
 
 def _require_org_owner(db: Session, organization_id: str, user: User) -> OrganizationMembership:
-    """Solo un administrador de la organización puede archivarla (más estricto que gestionar miembros)."""
+    """Solo un administrador de la organización puede archivarla.
+
+    Más estricto que gestionar miembros a propósito.
+    """
     membership = _require_org_membership(db, organization_id, user)
     if membership.role != "organization_admin":
-        raise ApiError(403, "org_forbidden", "Solo un administrador de la organización puede eliminarla")
+        raise ApiError(
+            403, "org_forbidden", "Solo un administrador de la organización puede eliminarla"
+        )
     return membership
 
 
 def archive_organization(db: Session, organization_id: str, user: User) -> None:
-    """Borrado seguro: desactiva la organización y archiva sus equipos (recuperable, no destructivo)."""
+    """Borrado seguro: desactiva la organización y archiva sus equipos.
+
+    Es recuperable: no destruye nada.
+    """
     _require_org_owner(db, organization_id, user)
 
     organization = db.scalar(

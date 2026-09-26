@@ -23,4 +23,3 @@ def api_error_response(request: Request, exc: ApiError) -> JSONResponse:
             }
         },
     )
-

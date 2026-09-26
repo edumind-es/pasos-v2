@@ -1,4 +1,5 @@
 """Helpers internos para el dashboard ejecutivo — no importar fuera de services/."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -7,7 +8,13 @@ from datetime import datetime, timezone
 from app.api.v1.dtos import ExecutiveSummaryResponse, TimelineItemResponse
 
 _COMPLETED_COLUMN_TOKENS = (
-    "terminado", "hecho", "validado", "publicado", "cerrado", "done", "complete",
+    "terminado",
+    "hecho",
+    "validado",
+    "publicado",
+    "cerrado",
+    "done",
+    "complete",
 )
 _PENDING_DOCUMENT_STATUSES = {"draft", "in_review"}
 

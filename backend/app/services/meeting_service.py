@@ -46,18 +46,22 @@ def create_board_meeting(
 ) -> BoardMeetingResponse:
     board, role = get_board_for_user(db, board_id, user)
     if role not in {"owner", "editor"}:
-        raise ApiError(403, "meeting_forbidden", "Insufficient permissions to create meeting notes on this board")
+        raise ApiError(
+            403,
+            "meeting_forbidden",
+            "Insufficient permissions to create meeting notes on this board",
+        )
 
     board_snapshot = board.snapshot or {}
     board_tasks = board_snapshot.get("tasks", []) if isinstance(board_snapshot, dict) else []
     valid_task_ids = {
-        task.get("id")
-        for task in board_tasks
-        if isinstance(task, dict) and task.get("id")
+        task.get("id") for task in board_tasks if isinstance(task, dict) and task.get("id")
     }
     invalid_ids = sorted(set(payload.linked_task_ids) - valid_task_ids)
     if invalid_ids:
-        raise ApiError(422, "meeting_invalid_tasks", f"Unknown board task ids: {', '.join(invalid_ids)}")
+        raise ApiError(
+            422, "meeting_invalid_tasks", f"Unknown board task ids: {', '.join(invalid_ids)}"
+        )
 
     meeting = BoardMeeting(
         id=str(uuid4()),

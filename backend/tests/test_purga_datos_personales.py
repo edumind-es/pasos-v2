@@ -6,6 +6,7 @@ Es un dato personal de un menor aunque la clave que lo identifica sea un
 UUID aleatorio. El RGPD obliga a conservarlo solo mientras haga falta, y
 deja de hacer falta cuando el código con el que se generó ya no sirve.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
-from typing_extensions import Annotated
 
 StrictId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]
 StrictTitle = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=160)]
@@ -32,7 +31,9 @@ class UserResponse(StrictModel):
     id: StrictId
     email: EmailStr
     display_name: str | None = None
-    workspace_code: Annotated[str, StringConstraints(strip_whitespace=True, min_length=6, max_length=16)]
+    workspace_code: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=6, max_length=16)
+    ]
 
 
 class AuthRegisterRequest(StrictModel):
@@ -98,7 +99,19 @@ class TaskSnapshotDTO(StrictModel):
     labels: list[Annotated[str, StringConstraints(max_length=32)]] = Field(default_factory=list)
     color: str | None = Field(default=None, max_length=32)
     icon: str | None = Field(default=None, max_length=2048)
-    taskType: Literal["task", "learning_step", "evidence", "agreement", "document", "resource", "incident", "milestone"] | None = None
+    taskType: (
+        Literal[
+            "task",
+            "learning_step",
+            "evidence",
+            "agreement",
+            "document",
+            "resource",
+            "incident",
+            "milestone",
+        ]
+        | None
+    ) = None
     pictograms: list[PictogramDTO] = Field(default_factory=list)
     attachments: list[AttachmentDTO] = Field(default_factory=list)
     durationSeconds: int | None = Field(default=None, ge=0, le=86400)
@@ -106,7 +119,9 @@ class TaskSnapshotDTO(StrictModel):
     supportText: str | None = Field(default=None, max_length=1500)
     expectedEvidence: str | None = Field(default=None, max_length=1000)
     nextStep: str | None = Field(default=None, max_length=500)
-    pedagogicalStatus: Literal["not_started", "in_progress", "needs_help", "ready_for_review", "validated"] | None = None
+    pedagogicalStatus: (
+        Literal["not_started", "in_progress", "needs_help", "ready_for_review", "validated"] | None
+    ) = None
     startDate: datetime | None = None
     dueDate: datetime | None = None
     dependencyTaskIds: list[StrictId] = Field(default_factory=list, max_length=50)
@@ -133,7 +148,9 @@ class BoardCreateRequest(StrictModel):
     organization_id: StrictId | None = None
     team_id: StrictId | None = None
     context_type: Literal["personal", "organization", "team"] | None = None
-    board_type: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=32)] | None = None
+    board_type: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=32)] | None
+    ) = None
 
 
 class BoardUpdateRequest(StrictModel):
@@ -142,7 +159,9 @@ class BoardUpdateRequest(StrictModel):
     organization_id: StrictId | None = None
     team_id: StrictId | None = None
     context_type: Literal["personal", "organization", "team"] | None = None
-    board_type: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=32)] | None = None
+    board_type: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=32)] | None
+    ) = None
 
 
 class BoardResponse(StrictModel):
@@ -242,7 +261,9 @@ class BoardInsightsResponse(StrictModel):
 
 
 class LearnerFeedbackRequest(StrictModel):
-    share_code: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=32)]
+    share_code: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=3, max_length=32)
+    ]
     learner_key: StrictId
     task_id: StrictId
     message: str = Field(min_length=1, max_length=1500)
@@ -253,7 +274,10 @@ class LearnerFeedbackRequest(StrictModel):
 class LearningAssignmentCreateRequest(StrictModel):
     target_type: Literal["student", "group"] = "student"
     target_label: StrictTitle
-    target_key: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)] | None = None
+    target_key: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
+        | None
+    ) = None
     due_date: datetime | None = None
     notes: str | None = Field(default=None, max_length=1500)
 
@@ -292,7 +316,9 @@ class BoardCommentResponse(StrictModel):
 class BoardMeetingCreateRequest(StrictModel):
     title: StrictTitle
     summary: str | None = Field(default=None, max_length=5000)
-    decisions: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]] = Field(default_factory=list, max_length=30)
+    decisions: list[
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+    ] = Field(default_factory=list, max_length=30)
     linked_task_ids: list[StrictId] = Field(default_factory=list, max_length=100)
 
 
@@ -311,7 +337,10 @@ class BoardMeetingResponse(StrictModel):
 
 class OrganizationCreateRequest(StrictModel):
     name: StrictTitle
-    slug: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)] | None = None
+    slug: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)]
+        | None
+    ) = None
     plan_type: Literal["school", "district", "pilot"] = "school"
 
 
@@ -328,8 +357,13 @@ class OrganizationResponse(StrictModel):
 
 class TeamCreateRequest(StrictModel):
     name: StrictTitle
-    slug: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)] | None = None
-    team_type: Literal["cycle", "department", "leadership", "project", "support", "custom"] = "custom"
+    slug: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)]
+        | None
+    ) = None
+    team_type: Literal["cycle", "department", "leadership", "project", "support", "custom"] = (
+        "custom"
+    )
     visibility: Literal["private", "organization"] = "private"
 
 
@@ -367,7 +401,9 @@ class OrgMembershipResponse(StrictModel):
 class TeamMembershipCreateRequest(StrictModel):
     user_id: StrictId | None = None
     user_email: EmailStr | None = None
-    user_code: Annotated[str, StringConstraints(strip_whitespace=True, min_length=6, max_length=16)] | None = None
+    user_code: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=6, max_length=16)] | None
+    ) = None
     role: Literal["owner", "editor", "viewer"] = "viewer"
 
 
@@ -389,7 +425,9 @@ class BoardDocumentCreateRequest(StrictModel):
     url: str | None = Field(default=None, max_length=4096)
     content: str | None = Field(default=None, max_length=20000)
     linked_task_ids: list[StrictId] = Field(default_factory=list, max_length=100)
-    tags: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]] = Field(default_factory=list, max_length=30)
+    tags: list[
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
+    ] = Field(default_factory=list, max_length=30)
 
 
 class BoardDocumentUpdateRequest(StrictModel):
@@ -400,7 +438,9 @@ class BoardDocumentUpdateRequest(StrictModel):
     url: str | None = Field(default=None, max_length=4096)
     content: str | None = Field(default=None, max_length=20000)
     linked_task_ids: list[StrictId] = Field(default_factory=list, max_length=100)
-    tags: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]] = Field(default_factory=list, max_length=30)
+    tags: list[
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
+    ] = Field(default_factory=list, max_length=30)
 
 
 class BoardDocumentResponse(StrictModel):
@@ -480,7 +520,16 @@ class TimelineItemResponse(StrictModel):
     board_id: StrictId
     board_title: StrictTitle
     title: StrictTitle
-    task_type: Literal["task", "learning_step", "evidence", "agreement", "document", "resource", "incident", "milestone"]
+    task_type: Literal[
+        "task",
+        "learning_step",
+        "evidence",
+        "agreement",
+        "document",
+        "resource",
+        "incident",
+        "milestone",
+    ]
     owner_label: str | None = Field(default=None, max_length=120)
     effort_points: int = Field(default=0, ge=0, le=100)
     column_title: str | None = Field(default=None, max_length=160)

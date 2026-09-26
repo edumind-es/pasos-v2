@@ -81,7 +81,9 @@ def test_team_board_comments_store_mentions(client: TestClient, db_session: Sess
     created_board = client.post(
         "/api/v1/boards",
         headers=auth_header(teacher.id),
-        json=board_payload("Seguimiento de reunión", context_type="team", board_type="meeting_followup"),
+        json=board_payload(
+            "Seguimiento de reunión", context_type="team", board_type="meeting_followup"
+        ),
     )
     assert created_board.status_code == 201, created_board.text
     board = created_board.json()

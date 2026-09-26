@@ -3,7 +3,6 @@ from typing import Any
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 # Valores por defecto de los secretos: viven aquí como fallback de desarrollo,
 # pero jamás deben llegar a producción. enforce_secret_policy() lo impide.
 _SECRETOS_DE_EJEMPLO = {
@@ -100,7 +99,8 @@ class Settings(BaseSettings):
         if problemas:
             detalle = "; ".join(problemas)
             raise RuntimeError(
-                "Configuración de seguridad inválida: " + detalle
+                "Configuración de seguridad inválida: "
+                + detalle
                 + ". Genera un secreto propio con: openssl rand -hex 32"
             )
 

@@ -31,7 +31,9 @@ def auth_header(user_id: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def board_payload(title: str, task_specs: list[dict[str, object]], **extra: object) -> dict[str, object]:
+def board_payload(
+    title: str, task_specs: list[dict[str, object]], **extra: object
+) -> dict[str, object]:
     return {
         "title": title,
         "snapshot": {
@@ -56,7 +58,9 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     app.dependency_overrides.clear()
 
 
-def test_executive_dashboard_aggregates_center_risk_and_progress(client: TestClient, db_session: Session) -> None:
+def test_executive_dashboard_aggregates_center_risk_and_progress(
+    client: TestClient, db_session: Session
+) -> None:
     admin = create_user(
         db_session,
         user_id="executive-admin",

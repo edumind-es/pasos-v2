@@ -16,5 +16,9 @@ class BoardMeeting(TimestampMixin, Base):
     author_label: Mapped[str | None] = mapped_column(String(120))
     title: Mapped[str] = mapped_column(String(160), nullable=False)
     summary: Mapped[str | None] = mapped_column(String(5000))
-    decisions_json: Mapped[list[str]] = mapped_column("decisions", SnapshotType, nullable=False, default=list)
-    linked_task_ids_json: Mapped[list[str]] = mapped_column("linked_task_ids", SnapshotType, nullable=False, default=list)
+    decisions_json: Mapped[list[str]] = mapped_column(
+        "decisions", SnapshotType, nullable=False, default=list
+    )
+    linked_task_ids_json: Mapped[list[str]] = mapped_column(
+        "linked_task_ids", SnapshotType, nullable=False, default=list
+    )

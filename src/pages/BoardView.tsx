@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState, useRef } from 'react';
 import { useBoardViewState } from '../hooks/useBoardViewState';
 import { useShareBoard } from '../hooks/useShareBoard';
 import { useBoardInsights } from '../hooks/useBoardInsights';
@@ -25,6 +25,7 @@ import { useBoardStore, useStore } from '../store/boardStore';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import TaskModal from '../components/TaskModal';
 import AIWizardModal from '../components/AIWizardModal';
+import { dragCarriesFiles, pickSessionFile, readSessionFile, SessionFileError } from '../utils/sessionFile';
 import { BoardSwitcherButton } from '../components/BoardSwitcherButton';
 import { EditableBoardTitle } from '../components/EditableBoardTitle';
 import { TextActionDialog } from '../components/TextActionDialog';
@@ -100,6 +101,47 @@ function BoardView() {
         showAssignmentsDialog, setShowAssignmentsDialog,
         showDocumentsPanel, setShowDocumentsPanel,
     } = useBoardViewState();
+
+    // ── Soltar un archivo de sesión (.md) sobre el tablero ──
+    const [sessionDrop, setSessionDrop] = useState<{ content: string; fileName: string } | null>(null);
+    const [fileDragging, setFileDragging] = useState(false);
+    const [fileDropError, setFileDropError] = useState<string | null>(null);
+    // Contador de entradas/salidas: sin él, pasar sobre un hijo apaga la capa.
+    const dragDepthRef = useRef(0);
+
+    const handleFileDragOver = (event: React.DragEvent) => {
+        if (!dragCarriesFiles(event.dataTransfer)) return;
+        event.preventDefault();
+        setFileDragging(true);
+    };
+
+    const handleFileDragEnter = (event: React.DragEvent) => {
+        if (!dragCarriesFiles(event.dataTransfer)) return;
+        dragDepthRef.current += 1;
+        setFileDragging(true);
+    };
+
+    const handleFileDragLeave = () => {
+        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+        if (dragDepthRef.current === 0) setFileDragging(false);
+    };
+
+    const handleFileDrop = async (event: React.DragEvent) => {
+        if (!dragCarriesFiles(event.dataTransfer)) return;
+        event.preventDefault();
+        dragDepthRef.current = 0;
+        setFileDragging(false);
+        setFileDropError(null);
+        const file = pickSessionFile(event.dataTransfer);
+        if (!file) return;
+        try {
+            const { content, fileName } = await readSessionFile(file);
+            setSessionDrop({ content, fileName });
+            setShowAIWizard(true);
+        } catch (e) {
+            setFileDropError(e instanceof SessionFileError ? e.message : 'No se pudo leer el archivo.');
+        }
+    };
 
     const isProUser = currentUser?.mode === 'pro';
     const workspaceMode = getWorkspaceModeFromPath(location.pathname);
@@ -492,7 +534,27 @@ function BoardView() {
     }
 
     return (
-        <div className={`min-h-screen text-lme-text flex flex-col font-sans ${compactEmbed ? 'pasos-board-embed' : ''}`}>
+        <div
+            className={`min-h-screen text-lme-text flex flex-col font-sans ${compactEmbed ? 'pasos-board-embed' : ''}`}
+            onDragEnter={handleFileDragEnter}
+            onDragOver={handleFileDragOver}
+            onDragLeave={handleFileDragLeave}
+            onDrop={handleFileDrop}
+        >
+            {fileDragging && (
+                <div className="fixed inset-0 z-dropdown flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-none">
+                    <div className="rounded-2xl border-2 border-dashed border-vio bg-lme-surface-alt px-10 py-8 text-center shadow-2xl">
+                        <p className="text-xl font-bold text-ink">Suelta aquí tu sesión</p>
+                        <p className="text-sm text-sub mt-1">Archivo .md de la plantilla de sesión · se lee en tu dispositivo</p>
+                    </div>
+                </div>
+            )}
+            {fileDropError && (
+                <div role="alert" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-dropdown max-w-md rounded-xl border border-lme-danger/40 bg-lme-surface-alt px-4 py-3 text-sm text-lme-danger shadow-2xl">
+                    {fileDropError}
+                    <button onClick={() => setFileDropError(null)} className="ml-3 font-bold" aria-label="Cerrar aviso">×</button>
+                </div>
+            )}
             {!compactEmbed && (
             <header className="sticky top-0 z-sticky glass-panel border-b-0 rounded-none border-b border-lme-border/50 px-4 py-4 sm:px-6">
                 {/* ── Header: fila única, responsiva ── */}
@@ -907,7 +969,9 @@ function BoardView() {
             {/* AI Wizard Modal */}
             {showAIWizard && (
                 <AIWizardModal
-                    onClose={() => setShowAIWizard(false)}
+                    onClose={() => { setShowAIWizard(false); setSessionDrop(null); }}
+                    initialInput={sessionDrop?.content}
+                    initialFileName={sessionDrop?.fileName}
                     workspaceContext={{
                         organizationId: currentBoard?.organizationId ?? effectiveOrganizationId,
                         teamId: currentBoard?.teamId ?? effectiveTeamId,
