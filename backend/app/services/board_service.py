@@ -49,7 +49,8 @@ def _validate_board_snapshot(snapshot: BoardSnapshotDTO) -> None:
             raise ApiError(
                 422,
                 "task_invalid_dependencies",
-                f"Task '{task.title}' references unknown dependencies: {', '.join(unknown_dependencies)}",
+                f"Task '{task.title}' references unknown dependencies: "
+                f"{', '.join(unknown_dependencies)}",
             )
 
     visiting: set[str] = set()
@@ -59,7 +60,9 @@ def _validate_board_snapshot(snapshot: BoardSnapshotDTO) -> None:
         if task_id in visited:
             return
         if task_id in visiting:
-            raise ApiError(422, "task_dependency_cycle", "Task dependency cycle detected in board snapshot")
+            raise ApiError(
+                422, "task_dependency_cycle", "Task dependency cycle detected in board snapshot"
+            )
 
         visiting.add(task_id)
         for dependency_id in dependency_map.get(task_id, []):
@@ -87,7 +90,9 @@ def _board_response(board: Board, role: str) -> BoardResponse:
     )
 
 
-def _get_direct_board_membership(db: Session, board_id: str, user_id: str) -> BoardMembership | None:
+def _get_direct_board_membership(
+    db: Session, board_id: str, user_id: str
+) -> BoardMembership | None:
     return db.scalar(
         select(BoardMembership).where(
             BoardMembership.board_id == board_id,
@@ -96,7 +101,9 @@ def _get_direct_board_membership(db: Session, board_id: str, user_id: str) -> Bo
     )
 
 
-def _get_active_org_membership(db: Session, organization_id: str, user_id: str) -> OrganizationMembership | None:
+def _get_active_org_membership(
+    db: Session, organization_id: str, user_id: str
+) -> OrganizationMembership | None:
     return db.scalar(
         select(OrganizationMembership).where(
             OrganizationMembership.organization_id == organization_id,
@@ -321,7 +328,9 @@ def create_board(db: Session, user: User, payload: BoardCreateRequest) -> BoardR
     return _board_response(board, "owner")
 
 
-def update_board(db: Session, board_id: str, user: User, payload: BoardUpdateRequest) -> BoardResponse:
+def update_board(
+    db: Session, board_id: str, user: User, payload: BoardUpdateRequest
+) -> BoardResponse:
     board, role = get_board_for_user(db, board_id, user)
     if role not in {"owner", "editor"}:
         raise ApiError(403, "board_forbidden", "Insufficient permissions to update board")

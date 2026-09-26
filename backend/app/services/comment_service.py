@@ -47,7 +47,9 @@ def create_board_comment(
 ) -> BoardCommentResponse:
     _board, role = get_board_for_user(db, board_id, user)
     if role not in {"owner", "editor"}:
-        raise ApiError(403, "comment_forbidden", "Insufficient permissions to comment on this board")
+        raise ApiError(
+            403, "comment_forbidden", "Insufficient permissions to comment on this board"
+        )
 
     comment = BoardComment(
         id=str(uuid4()),
@@ -55,7 +57,9 @@ def create_board_comment(
         author_id=user.id,
         author_label=user.display_name or user.email,
         message=payload.message,
-        mentions_json=sorted(set(match.rstrip(".,;:!?") for match in MENTION_RE.findall(payload.message.lower()))),
+        mentions_json=sorted(
+            set(match.rstrip(".,;:!?") for match in MENTION_RE.findall(payload.message.lower()))
+        ),
     )
     db.add(comment)
     db.commit()

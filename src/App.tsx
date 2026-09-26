@@ -211,7 +211,7 @@ function App() {
           appName="Pasos"
           version={__APP_VERSION__}
           versionStage="Stable"
-          feedbackUrl="https://github.com/edumind-es/pasos/issues"
+          feedbackUrl="https://github.com/edumind-es/pasos-v2/issues"
           homeHref="/"
           locale="es"
           hideNavigation={true}

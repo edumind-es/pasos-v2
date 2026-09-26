@@ -316,7 +316,7 @@ const TOUR_PASOS: Paso[] = [
         titulo: 'Crear una tarea',
         subtitulo: 'Es muy fácil',
         descripcion: [
-            'Pulsa el botón "+" de cualquier columna.',
+            'Pulsa "Añadir Tarea" al final de cualquier columna.',
             'Escribe el nombre de la tarea. ¡Y listo!',
         ],
         visual: <VisualCrear />,
@@ -326,8 +326,9 @@ const TOUR_PASOS: Paso[] = [
         titulo: 'Mover las tareas',
         subtitulo: 'Arrastra de columna en columna',
         descripcion: [
-            'Cuando una tarea está en marcha, arrástrala a "Haciendo".',
-            'Cuando termina, llévala a "Hecho". ¡Aparecerán confetis!',
+            'Cuando una tarea está en marcha, arrástrala a "En proceso".',
+            'Cuando termina, llévala a "Terminado". ¡Aparecerán confetis!',
+            'Sin ratón: con el foco en la tarjeta, pulsa Espacio, muévela con las flechas y vuelve a pulsar Espacio.',
         ],
         visual: <VisualMover />,
         consejo: '¡Pulsa el botón para ver cómo se mueve una tarea!',

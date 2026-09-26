@@ -70,7 +70,9 @@ def auth_header(user_id: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_team_owner_can_add_member_and_list_members(client: TestClient, db_session: Session) -> None:
+def test_team_owner_can_add_member_and_list_members(
+    client: TestClient, db_session: Session
+) -> None:
     admin = create_user(
         db_session,
         user_id="admin-user",
@@ -153,7 +155,9 @@ def test_team_owner_can_add_member_by_user_code(client: TestClient, db_session: 
     assert payload["user"]["workspace_code"] == build_workspace_code(teacher.id)
 
 
-def test_team_membership_controls_board_visibility_and_updates(client: TestClient, db_session: Session) -> None:
+def test_team_membership_controls_board_visibility_and_updates(
+    client: TestClient, db_session: Session
+) -> None:
     admin = create_user(
         db_session,
         user_id="admin-board-user",
@@ -234,7 +238,9 @@ def test_team_membership_controls_board_visibility_and_updates(client: TestClien
     assert forbidden_update.json()["error"]["code"] == "board_forbidden"
 
 
-def test_create_board_is_idempotent_for_existing_owner_board(client: TestClient, db_session: Session) -> None:
+def test_create_board_is_idempotent_for_existing_owner_board(
+    client: TestClient, db_session: Session
+) -> None:
     teacher = create_user(
         db_session,
         user_id="sync-owner-user",

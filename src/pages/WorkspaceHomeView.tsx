@@ -234,8 +234,8 @@ export default function WorkspaceHomeView() {
                                 <div className="flex items-start gap-3">
                                     <Lock className="mt-0.5 h-4 w-4 flex-shrink-0" />
                                     <div>
-                                        <p className="font-semibold">Disponible en cuenta Pro docente</p>
-                                        <p className="mt-1 text-xs leading-5">
+                                        <p className="font-semibold text-ink">Disponible en cuenta Pro docente</p>
+                                        <p className="mt-1 text-xs leading-5 text-ink">
                                             Activa una cuenta Pro para trabajar con organizaciones, equipos y coordinación de claustro.
                                         </p>
                                     </div>
@@ -263,7 +263,7 @@ export default function WorkspaceHomeView() {
                 </section>
 
                 {/* Footer EDUmind */}
-                <div className="mt-8 flex items-center justify-center gap-3 opacity-50">
+                <div className="mt-8 flex items-center justify-center gap-3">
                     <img src="/icons/edumind_logo.png" alt="EDUmind" className="w-6 h-6 rounded-lg" />
                     <p className="text-xs text-sub">
                         Pasos es una app de <strong className="text-ink">EDUmind</strong> · Luis Vilela Acuña

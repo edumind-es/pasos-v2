@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState, useRef } from 'react';
 import { useBoardViewState } from '../hooks/useBoardViewState';
 import { useShareBoard } from '../hooks/useShareBoard';
 import { useBoardInsights } from '../hooks/useBoardInsights';
@@ -25,12 +25,14 @@ import { useBoardStore, useStore } from '../store/boardStore';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import TaskModal from '../components/TaskModal';
 import AIWizardModal from '../components/AIWizardModal';
+import { dragCarriesFiles, pickSessionFile, readSessionFile, SessionFileError } from '../utils/sessionFile';
 import { BoardSwitcherButton } from '../components/BoardSwitcherButton';
 import { EditableBoardTitle } from '../components/EditableBoardTitle';
 import { TextActionDialog } from '../components/TextActionDialog';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { HeaderOverflowMenu } from '../components/HeaderOverflowMenu';
-import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, type DragStartEvent, type DragOverEvent, defaultDropAnimationSideEffects, type DropAnimation } from '@dnd-kit/core';
+import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, KeyboardSensor, type DragStartEvent, type DragOverEvent, defaultDropAnimationSideEffects, type DropAnimation } from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { createPortal } from 'react-dom';
 import { BoardColumn } from '../components/BoardColumn';
 import { TaskCard } from '../components/TaskCard';
@@ -100,6 +102,47 @@ function BoardView() {
         showAssignmentsDialog, setShowAssignmentsDialog,
         showDocumentsPanel, setShowDocumentsPanel,
     } = useBoardViewState();
+
+    // ── Soltar un archivo de sesión (.md) sobre el tablero ──
+    const [sessionDrop, setSessionDrop] = useState<{ content: string; fileName: string } | null>(null);
+    const [fileDragging, setFileDragging] = useState(false);
+    const [fileDropError, setFileDropError] = useState<string | null>(null);
+    // Contador de entradas/salidas: sin él, pasar sobre un hijo apaga la capa.
+    const dragDepthRef = useRef(0);
+
+    const handleFileDragOver = (event: React.DragEvent) => {
+        if (!dragCarriesFiles(event.dataTransfer)) return;
+        event.preventDefault();
+        setFileDragging(true);
+    };
+
+    const handleFileDragEnter = (event: React.DragEvent) => {
+        if (!dragCarriesFiles(event.dataTransfer)) return;
+        dragDepthRef.current += 1;
+        setFileDragging(true);
+    };
+
+    const handleFileDragLeave = () => {
+        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+        if (dragDepthRef.current === 0) setFileDragging(false);
+    };
+
+    const handleFileDrop = async (event: React.DragEvent) => {
+        if (!dragCarriesFiles(event.dataTransfer)) return;
+        event.preventDefault();
+        dragDepthRef.current = 0;
+        setFileDragging(false);
+        setFileDropError(null);
+        const file = pickSessionFile(event.dataTransfer);
+        if (!file) return;
+        try {
+            const { content, fileName } = await readSessionFile(file);
+            setSessionDrop({ content, fileName });
+            setShowAIWizard(true);
+        } catch (e) {
+            setFileDropError(e instanceof SessionFileError ? e.message : 'No se pudo leer el archivo.');
+        }
+    };
 
     const isProUser = currentUser?.mode === 'pro';
     const workspaceMode = getWorkspaceModeFromPath(location.pathname);
@@ -271,7 +314,10 @@ function BoardView() {
             activationConstraint: {
                 distance: 8, // Prevent accidental drags
             }
-        })
+        }),
+        // Vía de teclado: con el foco en la tarjeta, Espacio/Enter la levanta,
+        // las flechas la llevan a otra columna y Espacio/Enter la suelta (Esc cancela).
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
     const handleAddTask = (columnId: string) => {
@@ -477,6 +523,34 @@ function BoardView() {
         setTargetColumnId(null);
     };
 
+    // Instrucciones y avisos del arrastre para lectores de pantalla, en español
+    // (por defecto dnd-kit los emite en inglés). Se nombra la tarea, no su id.
+    const nombreTarea = (id: string | number) => tasks.find(t => t.id === id)?.title ?? 'tarea';
+    const nombreDestino = (id: string | number | undefined) => {
+        if (id === undefined) return null;
+        const columna = columns.find(c => c.id === id);
+        if (columna) return `la columna «${columna.title}»`;
+        const tarea = tasks.find(t => t.id === id);
+        return tarea ? `la columna «${columns.find(c => c.id === tarea.columnId)?.title ?? ''}»` : null;
+    };
+    const dndAccesibilidad = {
+        screenReaderInstructions: {
+            draggable: 'Para mover la tarea pulsa Espacio o Enter, usa las flechas para llevarla a otra columna y vuelve a pulsar Espacio o Enter para soltarla. Escape cancela.',
+        },
+        announcements: {
+            onDragStart: ({ active }: { active: { id: string | number } }) => `Has levantado la tarea «${nombreTarea(active.id)}».`,
+            onDragOver: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) => {
+                const destino = nombreDestino(over?.id);
+                return destino ? `La tarea «${nombreTarea(active.id)}» está sobre ${destino}.` : `La tarea «${nombreTarea(active.id)}» no está sobre ninguna columna.`;
+            },
+            onDragEnd: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) => {
+                const destino = nombreDestino(over?.id);
+                return destino ? `Has soltado la tarea «${nombreTarea(active.id)}» en ${destino}.` : `Has soltado la tarea «${nombreTarea(active.id)}».`;
+            },
+            onDragCancel: ({ active }: { active: { id: string | number } }) => `Movimiento de la tarea «${nombreTarea(active.id)}» cancelado.`,
+        },
+    };
+
     const dropAnimation: DropAnimation = {
         sideEffects: defaultDropAnimationSideEffects({
             styles: {
@@ -492,7 +566,27 @@ function BoardView() {
     }
 
     return (
-        <div className={`min-h-screen text-lme-text flex flex-col font-sans ${compactEmbed ? 'pasos-board-embed' : ''}`}>
+        <div
+            className={`min-h-screen text-lme-text flex flex-col font-sans ${compactEmbed ? 'pasos-board-embed' : ''}`}
+            onDragEnter={handleFileDragEnter}
+            onDragOver={handleFileDragOver}
+            onDragLeave={handleFileDragLeave}
+            onDrop={handleFileDrop}
+        >
+            {fileDragging && (
+                <div className="fixed inset-0 z-dropdown flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-none">
+                    <div className="rounded-2xl border-2 border-dashed border-vio bg-lme-surface-alt px-10 py-8 text-center shadow-2xl">
+                        <p className="text-xl font-bold text-ink">Suelta aquí tu sesión</p>
+                        <p className="text-sm text-sub mt-1">Archivo .md de la plantilla de sesión · se lee en tu dispositivo</p>
+                    </div>
+                </div>
+            )}
+            {fileDropError && (
+                <div role="alert" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-dropdown max-w-md rounded-xl border border-lme-danger/40 bg-lme-surface-alt px-4 py-3 text-sm text-lme-danger shadow-2xl">
+                    {fileDropError}
+                    <button onClick={() => setFileDropError(null)} className="ml-3 font-bold" aria-label="Cerrar aviso">×</button>
+                </div>
+            )}
             {!compactEmbed && (
             <header className="sticky top-0 z-sticky glass-panel border-b-0 rounded-none border-b border-lme-border/50 px-4 py-4 sm:px-6">
                 {/* ── Header: fila única, responsiva ── */}
@@ -508,6 +602,7 @@ function BoardView() {
                         <div className="flex items-center bg-black/20 border border-line rounded-lg p-0.5 shrink-0">
                             <Link
                                 to="/aula"
+                                aria-label="Aula"
                                 className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-lg transition-colors ${isClassroomWorkspace ? 'bg-sky/20 text-sky' : 'text-sub hover:text-ink'}`}
                             >
                                 <GraduationCap className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -516,6 +611,7 @@ function BoardView() {
                             {isProUser && (
                                 <Link
                                     to="/organizacion"
+                                    aria-label="Claustro"
                                     className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-lg transition-colors ${!isClassroomWorkspace ? 'bg-mint/20 text-mint' : 'text-sub hover:text-ink'}`}
                                 >
                                     <Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -575,6 +671,7 @@ function BoardView() {
                             <Link
                                 to={getWorkspaceSubPath('classroom', 'present')}
                                 className="flex items-center gap-1.5 px-2 sm:px-4 py-2 rounded-lg bg-ink text-lme-background hover:bg-fisico transition-colors text-sm font-bold uppercase tracking-wide"
+                                aria-label="Presentar"
                             >
                                 <Play className="w-4 h-4 fill-current" />
                                 <span className="hidden sm:inline">Presentar</span>
@@ -750,9 +847,9 @@ function BoardView() {
                                         <p className="plate-mono font-semibold text-fisico">
                                             {isClassroomWorkspace ? 'Kanban de aula' : currentBoard.contextType === 'team' ? 'Kanban de equipo' : 'Kanban de organización'}
                                         </p>
-                                        <h2 className="mt-1 text-xl font-black text-ink truncate">
+                                        <h1 className="mt-1 text-xl font-black text-ink truncate">
                                             {currentBoard.title}
-                                        </h2>
+                                        </h1>
                                     </div>
                                 )}
 
@@ -775,6 +872,7 @@ function BoardView() {
                                 <div className={`${compactEmbed ? 'mt-3' : 'mt-4'} overflow-x-auto pb-2`}>
                                     <DndContext
                                         sensors={sensors}
+                                        accessibility={dndAccesibilidad}
                                         onDragStart={onDragStart}
                                         onDragOver={onDragOver}
                                         onDragEnd={onDragEnd}
@@ -907,7 +1005,9 @@ function BoardView() {
             {/* AI Wizard Modal */}
             {showAIWizard && (
                 <AIWizardModal
-                    onClose={() => setShowAIWizard(false)}
+                    onClose={() => { setShowAIWizard(false); setSessionDrop(null); }}
+                    initialInput={sessionDrop?.content}
+                    initialFileName={sessionDrop?.fileName}
                     workspaceContext={{
                         organizationId: currentBoard?.organizationId ?? effectiveOrganizationId,
                         teamId: currentBoard?.teamId ?? effectiveTeamId,

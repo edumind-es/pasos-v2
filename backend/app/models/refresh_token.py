@@ -21,4 +21,3 @@ class RefreshToken(TimestampMixin, Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     rotated_from_id: Mapped[str | None] = mapped_column(String(36))
-

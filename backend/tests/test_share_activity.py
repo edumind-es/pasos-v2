@@ -7,14 +7,23 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.v1.dtos import LearnerFeedbackRequest, ShareActivityRequest, ShareCreateRequest, TaskEvidenceEntryDTO
+from app.api.v1.dtos import (
+    LearnerFeedbackRequest,
+    ShareActivityRequest,
+    ShareCreateRequest,
+    TaskEvidenceEntryDTO,
+)
 from app.core.errors import ApiError
 from app.models.activity import BoardActivityEvent
 from app.models.board import Board
 from app.models.membership import BoardMembership
 from app.models.share import BoardShare
 from app.models.user import User
-from app.services.activity_service import add_teacher_feedback, get_board_insights, record_share_activity
+from app.services.activity_service import (
+    add_teacher_feedback,
+    get_board_insights,
+    record_share_activity,
+)
 from app.services.share_service import create_share, resolve_share
 
 

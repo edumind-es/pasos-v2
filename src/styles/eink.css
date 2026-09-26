@@ -50,12 +50,13 @@
     /* Texto principal - tinta */
     --eink-ink-soft: #3c3934;
     /* Texto secundario */
-    --eink-ink-light: #676158;
-    /* Texto terciario/muted */
+    --eink-ink-light: #4f4a41;
+    /* Texto terciario/muted (5,1:1 sobre --eink-gray-pale; antes #676158 = 3,6:1) */
 
     /* ESCALA DE GRISES */
     --eink-gray-dark: #4a4744;
-    --eink-gray-mid: #7a7670;
+    --eink-gray-mid: #55504a;
+    /* También se usa como color de texto (placeholders, zonas vacías): 4,7:1 sobre --eink-gray-pale */
     --eink-gray-light: #aaa49a;
     --eink-gray-pale: #cbc5ba;
 
@@ -980,6 +981,12 @@ html.eink-dark textarea::placeholder {
 /* 13. ANIMATIONS/TRANSITIONS - Más suaves */
 .eink * {
     transition-duration: 0.1s !important;
+}
+
+/* El anillo de foco debe aparecer al instante: con la transición anterior el
+   outline tardaba 0,1 s y los lectores automáticos (axe) lo medían a 0 px. */
+.eink :focus-visible {
+    transition-duration: 0s !important;
 }
 
 /* Excepción para dragndrop */

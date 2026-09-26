@@ -19,4 +19,6 @@ class Team(TimestampMixin, Base):
     team_type: Mapped[str] = mapped_column(String(24), nullable=False, default="custom")
     visibility: Mapped[str] = mapped_column(String(16), nullable=False, default="private")
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    metadata_json: Mapped[dict] = mapped_column("metadata", SnapshotType, nullable=False, default=dict)
+    metadata_json: Mapped[dict] = mapped_column(
+        "metadata", SnapshotType, nullable=False, default=dict
+    )

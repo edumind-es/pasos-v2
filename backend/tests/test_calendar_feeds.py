@@ -81,7 +81,9 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     app.dependency_overrides.clear()
 
 
-def test_personal_calendar_feed_exposes_events_and_ics(client: TestClient, db_session: Session) -> None:
+def test_personal_calendar_feed_exposes_events_and_ics(
+    client: TestClient, db_session: Session
+) -> None:
     teacher = create_user(
         db_session,
         user_id="teacher-calendar",

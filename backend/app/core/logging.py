@@ -4,9 +4,14 @@ import sys
 from app.core.config import get_settings
 
 try:
-    from pythonjsonlogger import jsonlogger
+    # Ruta nueva desde python-json-logger 3.1; `pythonjsonlogger.jsonlogger`
+    # sigue existiendo pero avisa de deprecacion en cada arranque.
+    from pythonjsonlogger.json import JsonFormatter
 except ModuleNotFoundError:  # pragma: no cover - fallback for thin bootstrap hosts
-    jsonlogger = None
+    try:
+        from pythonjsonlogger.jsonlogger import JsonFormatter  # type: ignore[no-redef]
+    except ModuleNotFoundError:
+        JsonFormatter = None  # type: ignore[assignment, misc]
 
 
 def configure_logging() -> None:
@@ -19,14 +24,17 @@ def configure_logging() -> None:
         "status_code": "-",
         "duration_ms": "-",
     }
-    if jsonlogger is not None:
-        formatter = jsonlogger.JsonFormatter(
-            "%(asctime)s %(levelname)s %(name)s %(message)s %(request_id)s %(path)s %(method)s %(status_code)s %(duration_ms)s",
+    if JsonFormatter is not None:
+        formatter = JsonFormatter(
+            "%(asctime)s %(levelname)s %(name)s %(message)s %(request_id)s "
+            "%(path)s %(method)s %(status_code)s %(duration_ms)s",
             defaults=defaults,
         )
     else:
         formatter = logging.Formatter(
-            "%(asctime)s %(levelname)s %(name)s %(message)s request_id=%(request_id)s path=%(path)s method=%(method)s status_code=%(status_code)s duration_ms=%(duration_ms)s",
+            "%(asctime)s %(levelname)s %(name)s %(message)s "
+            "request_id=%(request_id)s path=%(path)s method=%(method)s "
+            "status_code=%(status_code)s duration_ms=%(duration_ms)s",
             defaults=defaults,
         )
     handler.setFormatter(formatter)

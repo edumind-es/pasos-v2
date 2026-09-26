@@ -16,14 +16,15 @@ from app.api.v1.dtos import (
     ExecutiveSummaryResponse,
     ExecutiveTeamMetricResponse,
     TaskSnapshotDTO,
+    TimelineItemResponse,
 )
 from app.models.board_document import BoardDocument
 from app.models.team import Team
 from app.models.user import User
 from app.services._executive_helpers import (
+    _PENDING_DOCUMENT_STATUSES,
     OwnerAccumulator,
     TeamAccumulator,
-    _PENDING_DOCUMENT_STATUSES,
     empty_executive_summary,
     is_completed,
     matches_owner,
@@ -80,9 +81,7 @@ def get_executive_dashboard(
         board_id=board_id,
     )
     filtered_items = [
-        item
-        for item in timeline.items
-        if matches_owner(item.owner_label, owner_label)
+        item for item in timeline.items if matches_owner(item.owner_label, owner_label)
     ]
 
     items_by_board: dict[str, list[TimelineItemResponse]] = defaultdict(list)
@@ -115,12 +114,24 @@ def get_executive_dashboard(
                 board_id=board.id,
                 board_title=board.title,
                 team_id=board.team_id,
-                team_name=team_name_map.get(board.team_id) if board.team_id else team_label(None, board.context_type),
+                team_name=team_name_map.get(board.team_id)
+                if board.team_id
+                else team_label(None, board.context_type),
                 title=document.title,
                 status=document.status,  # type: ignore[arg-type]
                 author_label=document.author_label,
                 updated_at=document.updated_at,
-                age_days=max(0, (now - (document.updated_at if document.updated_at.tzinfo else document.updated_at.replace(tzinfo=timezone.utc))).days),
+                age_days=max(
+                    0,
+                    (
+                        now
+                        - (
+                            document.updated_at
+                            if document.updated_at.tzinfo
+                            else document.updated_at.replace(tzinfo=timezone.utc)
+                        )
+                    ).days,
+                ),
             )
         )
 
@@ -145,9 +156,7 @@ def get_executive_dashboard(
         board_items = items_by_board.get(board.id, [])
         board_blocked_count = sum(1 for item in board_items if item.is_blocked)
         board_delayed_count = sum(
-            1
-            for item in board_items
-            if item.is_delayed and within_alert_window(item, window_start)
+            1 for item in board_items if item.is_delayed and within_alert_window(item, window_start)
         )
         board_overdue_milestone_count = sum(
             1
@@ -172,7 +181,9 @@ def get_executive_dashboard(
                 board_id=board.id,
                 board_title=board.title,
                 team_id=board.team_id,
-                team_name=team_name_map.get(board.team_id) if board.team_id else team_label(None, board.context_type),
+                team_name=team_name_map.get(board.team_id)
+                if board.team_id
+                else team_label(None, board.context_type),
                 board_type=board.board_type,
                 total_tasks=board_total_tasks,
                 completed_tasks=board_completed_tasks,
@@ -186,7 +197,11 @@ def get_executive_dashboard(
         )
 
         team_key = board.team_id
-        team_name = team_name_map.get(board.team_id) if board.team_id else team_label(None, board.context_type)
+        team_name = (
+            team_name_map.get(board.team_id)
+            if board.team_id
+            else team_label(None, board.context_type)
+        )
         team_accumulator = team_accumulators.get(team_key)
         if team_accumulator is None:
             team_accumulator = TeamAccumulator(team_id=team_key, team_name=team_name)
@@ -214,7 +229,9 @@ def get_executive_dashboard(
         current.task_count += 1
         current.effort_points += item.effort_points
         current.blocked_count += 1 if item.is_blocked else 0
-        current.delayed_count += 1 if item.is_delayed and within_alert_window(item, window_start) else 0
+        current.delayed_count += (
+            1 if item.is_delayed and within_alert_window(item, window_start) else 0
+        )
 
     blocker_groups: dict[str, dict[str, object]] = {}
     for item in filtered_items:
@@ -223,7 +240,9 @@ def get_executive_dashboard(
         if not within_alert_window(item, window_start):
             continue
         for dependency_task_id in item.blocked_by_task_ids:
-            blocker_title = task_title_map.get((item.board_id, dependency_task_id)) or dependency_task_id
+            blocker_title = (
+                task_title_map.get((item.board_id, dependency_task_id)) or dependency_task_id
+            )
             blocker_key = normalize_key(blocker_title)
             group = blocker_groups.get(blocker_key)
             if group is None:
@@ -254,7 +273,9 @@ def get_executive_dashboard(
         )
         for group in blocker_groups.values()
     ]
-    recurring_blockers.sort(key=lambda item: (-item.blocked_task_count, -item.board_count, item.blocker_label.lower()))
+    recurring_blockers.sort(
+        key=lambda item: (-item.blocked_task_count, -item.board_count, item.blocker_label.lower())
+    )
     recurrent_blocker_count = sum(1 for item in recurring_blockers if item.blocked_task_count >= 2)
 
     overdue_milestones: list[ExecutiveOverdueMilestoneResponse] = []
@@ -270,7 +291,9 @@ def get_executive_dashboard(
                 board_id=item.board_id,
                 board_title=item.board_title,
                 team_id=item.team_id,
-                team_name=team_name_map.get(item.team_id) if item.team_id else team_label(None, item.context_type),
+                team_name=team_name_map.get(item.team_id)
+                if item.team_id
+                else team_label(None, item.context_type),
                 title=item.title,
                 owner_label=item.owner_label,
                 due_at=end_at,
@@ -295,7 +318,12 @@ def get_executive_dashboard(
         for accumulator in team_accumulators.values()
     ]
     teams_response.sort(
-        key=lambda item: (-item.overdue_milestone_count, -item.delayed_count, -item.blocked_count, item.team_name.lower())
+        key=lambda item: (
+            -item.overdue_milestone_count,
+            -item.delayed_count,
+            -item.blocked_count,
+            item.team_name.lower(),
+        )
     )
 
     owners_response = [
@@ -309,7 +337,9 @@ def get_executive_dashboard(
         )
         for accumulator in owner_accumulators.values()
     ]
-    owners_response.sort(key=lambda item: (-item.effort_points, -item.task_count, item.owner_label.lower()))
+    owners_response.sort(
+        key=lambda item: (-item.effort_points, -item.task_count, item.owner_label.lower())
+    )
 
     project_rows.sort(
         key=lambda item: (
@@ -349,5 +379,3 @@ def get_executive_dashboard(
         pending_documents=pending_documents,
         overdue_milestones=overdue_milestones,
     )
-
-

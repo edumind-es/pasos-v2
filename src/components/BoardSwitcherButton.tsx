@@ -35,6 +35,7 @@ export function BoardSwitcherButton({ onCreateBoard, visibleBoards, disabled = f
                 onClick={handleOpen}
                 disabled={disabled}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg border border-line hover:bg-white/5 transition-colors text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Mis Tableros"
             >
                 <Settings className="w-4 h-4" />
                 <span className="hidden sm:inline">Mis Tableros</span>

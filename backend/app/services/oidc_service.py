@@ -54,13 +54,23 @@ async def fetch_oidc_metadata() -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
         response = await client.get(f"{issuer}/.well-known/openid-configuration")
     if response.status_code >= 400:
-        raise ApiError(502, "sso_metadata_unavailable", "No se pudo cargar la metadata OIDC de Authentik")
+        raise ApiError(
+            502, "sso_metadata_unavailable", "No se pudo cargar la metadata OIDC de Authentik"
+        )
 
     metadata = response.json()
-    required = ("issuer", "authorization_endpoint", "token_endpoint", "userinfo_endpoint", "jwks_uri")
+    required = (
+        "issuer",
+        "authorization_endpoint",
+        "token_endpoint",
+        "userinfo_endpoint",
+        "jwks_uri",
+    )
     missing = [key for key in required if not metadata.get(key)]
     if missing:
-        raise ApiError(502, "sso_metadata_invalid", f"Metadata OIDC incompleta: {', '.join(missing)}")
+        raise ApiError(
+            502, "sso_metadata_invalid", f"Metadata OIDC incompleta: {', '.join(missing)}"
+        )
     _metadata_cache = metadata
     return metadata
 
@@ -73,7 +83,9 @@ async def fetch_oidc_jwks(metadata: dict[str, Any]) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
         response = await client.get(str(metadata["jwks_uri"]))
     if response.status_code >= 400:
-        raise ApiError(502, "sso_jwks_unavailable", "No se pudieron cargar las claves OIDC de Authentik")
+        raise ApiError(
+            502, "sso_jwks_unavailable", "No se pudieron cargar las claves OIDC de Authentik"
+        )
 
     jwks = response.json()
     if not isinstance(jwks.get("keys"), list) or not jwks["keys"]:
@@ -82,7 +94,9 @@ async def fetch_oidc_jwks(metadata: dict[str, Any]) -> dict[str, Any]:
     return jwks
 
 
-def build_authorization_url(metadata: dict[str, Any], state: str, nonce: str, code_verifier: str) -> str:
+def build_authorization_url(
+    metadata: dict[str, Any], state: str, nonce: str, code_verifier: str
+) -> str:
     settings = get_settings()
     query = urlencode(
         {
@@ -99,7 +113,9 @@ def build_authorization_url(metadata: dict[str, Any], state: str, nonce: str, co
     return f"{metadata['authorization_endpoint']}?{query}"
 
 
-async def exchange_authorization_code(code: str, code_verifier: str, metadata: dict[str, Any]) -> dict[str, Any]:
+async def exchange_authorization_code(
+    code: str, code_verifier: str, metadata: dict[str, Any]
+) -> dict[str, Any]:
     settings = get_settings()
     data = {
         "grant_type": "authorization_code",
@@ -116,7 +132,9 @@ async def exchange_authorization_code(code: str, code_verifier: str, metadata: d
 
     payload = response.json()
     if not payload.get("access_token") or not payload.get("id_token"):
-        raise ApiError(502, "sso_token_response_invalid", "La respuesta OIDC no incluyo los tokens requeridos")
+        raise ApiError(
+            502, "sso_token_response_invalid", "La respuesta OIDC no incluyo los tokens requeridos"
+        )
     return payload
 
 
@@ -131,7 +149,11 @@ async def fetch_userinfo(access_token: str, metadata: dict[str, Any]) -> dict[st
     return response.json()
 
 
-async def validate_id_token(id_token: str, metadata: dict[str, Any], expected_nonce: str) -> dict[str, Any]:
+async def validate_id_token(
+    id_token: str, metadata: dict[str, Any], expected_nonce: str | None
+) -> dict[str, Any]:
+    """`expected_nonce` es None solo en la entrada con el movil: el flujo de
+    dispositivo no lleva nonce y el codigo solo lo cobra este backend con su secreto."""
     settings = get_settings()
     try:
         header = jwt.get_unverified_header(id_token)
@@ -162,8 +184,10 @@ async def validate_id_token(id_token: str, metadata: dict[str, Any], expected_no
     except jwt.PyJWTError as exc:
         raise ApiError(401, "sso_id_token_invalid", "No se pudo validar el id_token OIDC") from exc
 
-    if claims.get("nonce") != expected_nonce:
-        raise ApiError(401, "sso_nonce_mismatch", "La respuesta OIDC no coincide con la sesion iniciada")
+    if expected_nonce is not None and claims.get("nonce") != expected_nonce:
+        raise ApiError(
+            401, "sso_nonce_mismatch", "La respuesta OIDC no coincide con la sesion iniciada"
+        )
     return claims
 
 
@@ -179,7 +203,9 @@ def upsert_user_from_claims(db: Session, claims: dict[str, Any]) -> User:
     settings = get_settings()
     subject = _claim_string(claims, "sub")
     if not subject:
-        raise ApiError(502, "sso_subject_missing", "El perfil OIDC no incluyo identificador de usuario")
+        raise ApiError(
+            502, "sso_subject_missing", "El perfil OIDC no incluyo identificador de usuario"
+        )
 
     email = _claim_string(claims, "email")
     if email:
@@ -191,7 +217,9 @@ def upsert_user_from_claims(db: Session, claims: dict[str, Any]) -> User:
 
     if not user:
         if not settings.authentik_auto_provision:
-            raise ApiError(403, "sso_user_not_provisioned", "El usuario no esta dado de alta en Pasos")
+            raise ApiError(
+                403, "sso_user_not_provisioned", "El usuario no esta dado de alta en Pasos"
+            )
         if not email:
             raise ApiError(502, "sso_email_missing", "El perfil OIDC no incluyo email")
         user = User(
@@ -204,7 +232,9 @@ def upsert_user_from_claims(db: Session, claims: dict[str, Any]) -> User:
 
     if email:
         user.email = email
-    user.display_name = _claim_string(claims, "name", "preferred_username") or user.display_name or email
+    user.display_name = (
+        _claim_string(claims, "name", "preferred_username") or user.display_name or email
+    )
     user.auth_provider = "authentik"
     user.oidc_subject = subject
     user.last_login_at = datetime.now(timezone.utc)
@@ -215,9 +245,88 @@ def upsert_user_from_claims(db: Session, claims: dict[str, Any]) -> User:
     return user
 
 
-async def authenticate_oidc_callback(db: Session, code: str, code_verifier: str, expected_nonce: str) -> User:
+async def authenticate_oidc_callback(
+    db: Session, code: str, code_verifier: str, expected_nonce: str
+) -> User:
     metadata = await fetch_oidc_metadata()
     token_payload = await exchange_authorization_code(code, code_verifier, metadata)
     id_claims = await validate_id_token(str(token_payload["id_token"]), metadata, expected_nonce)
+    userinfo_claims = await fetch_userinfo(str(token_payload["access_token"]), metadata)
+    return upsert_user_from_claims(db, {**id_claims, **userinfo_claims})
+
+
+# --- Entrar con el movil: flujo de codigo de dispositivo (RFC 8628) ----------
+#
+# El ordenador del aula ensena un QR; el docente lo aprueba desde su movil, donde
+# ya tiene sesion en Authentik con su llave de acceso. En la pantalla compartida
+# no se escribe nada. Pasos corre con varios procesos, asi que el device_code
+# viaja en una cookie HttpOnly en vez de en memoria: cobrarlo exige el secreto
+# del cliente, que solo tiene este backend.
+
+DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
+
+
+async def request_device_code(metadata: dict[str, Any]) -> dict[str, Any]:
+    settings = get_settings()
+    endpoint = metadata.get("device_authorization_endpoint")
+    if not endpoint:
+        raise ApiError(
+            503, "sso_device_unavailable", "Authentik no anuncia el flujo de dispositivo"
+        )
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
+        response = await client.post(
+            str(endpoint),
+            data={"client_id": settings.authentik_client_id, "scope": settings.authentik_scopes},
+        )
+    if response.status_code >= 400:
+        # 429 = Authentik limita a 20 solicitudes por hora desde este servidor.
+        status = 429 if response.status_code == 429 else 502
+        raise ApiError(
+            status, "sso_device_start_failed", "No se pudo iniciar la entrada con el movil"
+        )
+    payload = response.json()
+    if not all(
+        payload.get(k)
+        for k in ("device_code", "user_code", "verification_uri_complete", "expires_in")
+    ):
+        raise ApiError(502, "sso_device_invalid", "Respuesta incompleta del flujo de dispositivo")
+    return payload
+
+
+async def poll_device_code(
+    device_code: str, metadata: dict[str, Any]
+) -> tuple[str, dict[str, Any] | None]:
+    """Devuelve (estado, tokens). Estados: pendiente, aprobada, rechazada, caducada."""
+    settings = get_settings()
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
+        response = await client.post(
+            str(metadata["token_endpoint"]),
+            data={
+                "grant_type": DEVICE_GRANT,
+                "device_code": device_code,
+                "client_id": settings.authentik_client_id,
+                "client_secret": settings.authentik_client_secret,
+            },
+        )
+    try:
+        payload = response.json()
+    except ValueError:
+        payload = {}
+    if response.status_code < 400 and payload.get("access_token") and payload.get("id_token"):
+        return "aprobada", payload
+    error = payload.get("error")
+    if error in ("authorization_pending", "slow_down"):
+        return "pendiente", None
+    if error == "access_denied":
+        return "rechazada", None
+    if error in ("expired_token", "invalid_grant"):
+        return "caducada", None
+    raise ApiError(502, "sso_device_poll_failed", "No se pudo completar la entrada con el movil")
+
+
+async def authenticate_device_tokens(
+    db: Session, token_payload: dict[str, Any], metadata: dict[str, Any]
+) -> User:
+    id_claims = await validate_id_token(str(token_payload["id_token"]), metadata, None)
     userinfo_claims = await fetch_userinfo(str(token_payload["access_token"]), metadata)
     return upsert_user_from_claims(db, {**id_claims, **userinfo_claims})

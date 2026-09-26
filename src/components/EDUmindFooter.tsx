@@ -151,13 +151,20 @@ export default function EDUmindFooter({
                         </>
                     )}
                 </p>
+                {/* Fórmula de atribución que exige la licencia CC BY-NC-SA de ARASAAC */}
+                <p className="footer-credits" style={{ marginTop: '0.35rem', fontSize: '0.875rem' }}>
+                    Autor pictogramas: Sergio Palao. Origen: ARASAAC (<a href="http://www.arasaac.org" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>http://www.arasaac.org</a>).
+                    Licencia: CC BY-NC-SA. Propiedad: Gobierno de Aragón (España).
+                    <span style={{ margin: '0 0.5rem' }}>·</span>
+                    <a href={`${repoUrl}/blob/main/CREDITS.md`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Créditos y tipografías</a>
+                </p>
             </div>
 
             <div className="footer-legal" style={{
                 marginTop: '1rem',
                 textAlign: 'center',
                 fontSize: '0.875rem',
-                color: '#6b7280'
+                color: 'var(--lme-text-secondary)' /* antes #6b7280: 3,4:1 sobre papel */
             }}>
                 <a href="https://edumind.es/es/legal/privacidad" target="_blank" rel="noopener noreferrer" style={{
                     color: 'inherit',
@@ -196,17 +203,17 @@ export default function EDUmindFooter({
                 }}>Contacto</a>
                 <span style={{ margin: '0 0.5rem' }}>·</span>
                 <a href="https://donar.edumind.es" target="_blank" rel="noopener noreferrer" style={{
-                    color: '#10b981',
+                    color: '#047857', /* colores de marca oscurecidos: ≥4,5:1 sobre el fondo del pie */
                     textDecoration: 'none',
                     fontWeight: '500'
                 }}>💚 Apoyar</a>
 
                 <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                    <a href="https://t.me/EDUmind_es" target="_blank" rel="noopener noreferrer" style={{ color: '#0088cc', textDecoration: 'none' }}>📢 Telegram</a>
-                    <a href="https://instagram.com/edumind_es" target="_blank" rel="noopener noreferrer" style={{ color: '#E1306C', textDecoration: 'none' }}>📸 Instagram</a>
+                    <a href="https://t.me/EDUmind_es" target="_blank" rel="noopener noreferrer" style={{ color: '#0c5f8a', textDecoration: 'none' }}>📢 Telegram</a>
+                    <a href="https://instagram.com/edumind_es" target="_blank" rel="noopener noreferrer" style={{ color: '#a01d50', textDecoration: 'none' }}>📸 Instagram</a>
                     <a href="https://x.com/edumind_es" target="_blank" rel="noopener noreferrer" style={{ color: '#000000', textDecoration: 'none' }}>𝕏 Twitter</a>
-                    <a href="https://mastodon.social/@EDUmind" target="_blank" rel="noopener noreferrer" style={{ color: '#6364FF', textDecoration: 'none' }}>🐘 Mastodon</a>
-                    <a href="https://blog.edumind.es" target="_blank" rel="noopener noreferrer" style={{ color: '#10b981', textDecoration: 'none' }}>📝 Blog</a>
+                    <a href="https://mastodon.social/@EDUmind" target="_blank" rel="noopener noreferrer" style={{ color: '#4547c9', textDecoration: 'none' }}>🐘 Mastodon</a>
+                    <a href="https://blog.edumind.es" target="_blank" rel="noopener noreferrer" style={{ color: '#047857', textDecoration: 'none' }}>📝 Blog</a>
                 </div>
             </div>
 

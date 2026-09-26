@@ -28,11 +28,14 @@ from app.services.auth_service import (
     rotate_refresh_token,
 )
 from app.services.oidc_service import (
+    authenticate_device_tokens,
     authenticate_oidc_callback,
     build_authorization_url,
     ensure_oidc_configured,
     fetch_oidc_jwks,
     fetch_oidc_metadata,
+    poll_device_code,
+    request_device_code,
 )
 from app.services.user_identity_service import to_user_response
 
@@ -41,6 +44,7 @@ OIDC_STATE_COOKIE = "pasos_oidc_state"
 OIDC_NONCE_COOKIE = "pasos_oidc_nonce"
 OIDC_VERIFIER_COOKIE = "pasos_oidc_verifier"
 OIDC_NEXT_COOKIE = "pasos_oidc_next"
+MOVIL_COOKIE = "pasos_movil"
 
 
 def _oidc_cookie_path() -> str:
@@ -74,7 +78,9 @@ def _set_auth_cookies(response: Response, refresh_token: str, csrf_token: str) -
 
 def _clear_auth_cookies(response: Response) -> None:
     settings = get_settings()
-    response.delete_cookie(settings.refresh_cookie_name, domain=settings.cookie_domain, path="/api/v1/auth")
+    response.delete_cookie(
+        settings.refresh_cookie_name, domain=settings.cookie_domain, path="/api/v1/auth"
+    )
     response.delete_cookie(settings.csrf_cookie_name, domain=settings.cookie_domain, path="/")
 
 
@@ -162,7 +168,9 @@ async def oidc_start(next: str | None = None) -> RedirectResponse:
     state = secrets.token_urlsafe(32)
     nonce = secrets.token_urlsafe(32)
     code_verifier = secrets.token_urlsafe(64)
-    response = RedirectResponse(build_authorization_url(metadata, state, nonce, code_verifier), status_code=303)
+    response = RedirectResponse(
+        build_authorization_url(metadata, state, nonce, code_verifier), status_code=303
+    )
     _set_oidc_cookie(response, OIDC_STATE_COOKIE, state)
     _set_oidc_cookie(response, OIDC_NONCE_COOKIE, nonce)
     _set_oidc_cookie(response, OIDC_VERIFIER_COOKIE, code_verifier)
@@ -185,15 +193,78 @@ async def oidc_callback(
     expected_nonce = request.cookies.get(OIDC_NONCE_COOKIE)
     code_verifier = request.cookies.get(OIDC_VERIFIER_COOKIE)
     next_path = request.cookies.get(OIDC_NEXT_COOKIE)
-    if not code or not state or not expected_state or state != expected_state or not expected_nonce or not code_verifier:
-        raise ApiError(400, "sso_callback_state_invalid", "La respuesta SSO no coincide con la sesion iniciada")
+    if (
+        not code
+        or not state
+        or not expected_state
+        or state != expected_state
+        or not expected_nonce
+        or not code_verifier
+    ):
+        raise ApiError(
+            400, "sso_callback_state_invalid", "La respuesta SSO no coincide con la sesion iniciada"
+        )
 
     user = await authenticate_oidc_callback(db, code, code_verifier, expected_nonce)
-    tokens = issue_tokens(db, user, request.client.host if request.client else None, request.headers.get("user-agent"))
+    tokens = issue_tokens(
+        db, user, request.client.host if request.client else None, request.headers.get("user-agent")
+    )
     response = RedirectResponse(_frontend_login_url(next_path), status_code=303)
     _set_auth_cookies(response, tokens["refresh_token"], tokens["csrf_token"])
     _clear_oidc_cookies(response)
     return response
+
+
+# --- Entrar con el movil (ver oidc_service) ---------------------------------
+
+
+def _movil_cookie_path() -> str:
+    return f"{get_settings().api_v1_prefix.rstrip('/')}/auth/movil"
+
+
+@router.post("/movil/iniciar", dependencies=[Depends(rate_limit("auth_movil_iniciar", 10, 3600))])
+async def movil_iniciar(response: Response) -> dict[str, object]:
+    settings = get_settings()
+    metadata = await fetch_oidc_metadata()
+    payload = await request_device_code(metadata)
+    response.set_cookie(
+        key=MOVIL_COOKIE,
+        value=str(payload["device_code"]),
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="lax",
+        max_age=int(payload["expires_in"]),
+        domain=settings.cookie_domain,
+        path=_movil_cookie_path(),
+    )
+    return {
+        "enlace": payload["verification_uri_complete"],
+        "codigo": payload["user_code"],
+        "caduca_en": int(payload["expires_in"]),
+    }
+
+
+@router.post("/movil/estado", dependencies=[Depends(rate_limit("auth_movil_estado", 30, 60))])
+async def movil_estado(request: Request, response: Response, db: DbSession) -> dict[str, str]:
+    settings = get_settings()
+    device_code = request.cookies.get(MOVIL_COOKIE)
+    if not device_code:
+        return {"estado": "caducada"}
+    metadata = await fetch_oidc_metadata()
+    estado, token_payload = await poll_device_code(device_code, metadata)
+    if estado == "pendiente":
+        return {"estado": estado}
+    response.delete_cookie(MOVIL_COOKIE, domain=settings.cookie_domain, path=_movil_cookie_path())
+    if estado != "aprobada" or token_payload is None:
+        return {"estado": estado}
+
+    user = await authenticate_device_tokens(db, token_payload, metadata)
+    tokens = issue_tokens(
+        db, user, request.client.host if request.client else None, request.headers.get("user-agent")
+    )
+    # El frontend termina igual que el SSO normal: /login?sso=1 canjea el refresh.
+    _set_auth_cookies(response, tokens["refresh_token"], tokens["csrf_token"])
+    return {"estado": estado}
 
 
 @router.post(
@@ -208,7 +279,9 @@ def register(
     db: DbSession,
 ) -> AuthTokenResponse:
     user = register_user(db, payload)
-    tokens = issue_tokens(db, user, request.client.host if request.client else None, request.headers.get("user-agent"))
+    tokens = issue_tokens(
+        db, user, request.client.host if request.client else None, request.headers.get("user-agent")
+    )
     _set_auth_cookies(response, tokens["refresh_token"], tokens["csrf_token"])
     return _auth_response(user, tokens)
 
@@ -225,7 +298,9 @@ def login(
     db: DbSession,
 ) -> AuthTokenResponse:
     user = authenticate_user(db, payload)
-    tokens = issue_tokens(db, user, request.client.host if request.client else None, request.headers.get("user-agent"))
+    tokens = issue_tokens(
+        db, user, request.client.host if request.client else None, request.headers.get("user-agent")
+    )
     _set_auth_cookies(response, tokens["refresh_token"], tokens["csrf_token"])
     return _auth_response(user, tokens)
 

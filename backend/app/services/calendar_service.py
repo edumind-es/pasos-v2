@@ -25,7 +25,9 @@ from app.services.board_service import list_user_boards
 
 def _calendar_feed_url(token: str) -> str:
     settings = get_settings()
-    return f"{settings.public_base_url.rstrip('/')}{settings.api_v1_prefix}/calendar/feeds/{token}.ics"
+    return (
+        f"{settings.public_base_url.rstrip('/')}{settings.api_v1_prefix}/calendar/feeds/{token}.ics"
+    )
 
 
 def _calendar_feed_response(feed: CalendarFeed) -> CalendarFeedResponse:

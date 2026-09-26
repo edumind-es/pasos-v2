@@ -59,6 +59,27 @@ export async function startSsoLogin(next = '/'): Promise<void> {
     window.location.assign(targetUrl);
 }
 
+// --- Entrar con el móvil ---------------------------------------------------
+// El ordenador del aula enseña un QR y el docente lo aprueba en su móvil. El
+// backend guarda el código de Authentik; aquí solo llega el enlace del QR.
+// Al aprobar, el backend deja las cookies de sesión y se termina como el SSO.
+
+export type EntradaMovil = { enlace: string; codigo: string; caduca_en: number };
+export type EstadoEntradaMovil = 'pendiente' | 'aprobada' | 'rechazada' | 'caducada';
+
+export async function iniciarEntradaMovil(): Promise<EntradaMovil> {
+    return requestJson<EntradaMovil>('/auth/movil/iniciar', { method: 'POST' }, false);
+}
+
+export async function consultarEntradaMovil(): Promise<EstadoEntradaMovil> {
+    const { estado } = await requestJson<{ estado: EstadoEntradaMovil }>(
+        '/auth/movil/estado',
+        { method: 'POST' },
+        false,
+    );
+    return estado;
+}
+
 export async function completeSsoLogin(): Promise<ProAuthTokenResponse> {
     return refreshProSessionPayload();
 }

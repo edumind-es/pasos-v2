@@ -20,4 +20,6 @@ class Board(TimestampMixin, Base):
     board_type: Mapped[str | None] = mapped_column(String(32), index=True)
     title: Mapped[str] = mapped_column(String(160), nullable=False)
     snapshot: Mapped[dict] = mapped_column(SnapshotType, nullable=False, default=dict)
-    metadata_json: Mapped[dict] = mapped_column("metadata", SnapshotType, nullable=False, default=dict)
+    metadata_json: Mapped[dict] = mapped_column(
+        "metadata", SnapshotType, nullable=False, default=dict
+    )

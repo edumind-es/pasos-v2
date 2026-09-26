@@ -40,4 +40,3 @@ def require_csrf(
     if request.cookies.get("pasos_refresh"):
         if not x_csrf_token or not csrf_cookie or x_csrf_token != csrf_cookie:
             raise ApiError(403, "csrf_failed", "CSRF token missing or invalid")
-

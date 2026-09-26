@@ -104,7 +104,23 @@ function extractSequenceTerms(title: string): string[] {
         .filter(part => part.length > 2);
 }
 
-export async function autoAssignPictogramsToTasks(tasks: { title: string, pictograms?: Pictogram[], icon?: string }[]): Promise<void> {
+interface PictogramTarget {
+    id?: string;
+    title: string;
+    pictograms?: Pictogram[];
+    icon?: string;
+}
+
+export interface AutoAssignOptions {
+    /**
+     * Término de búsqueda depurado por tarea (id → término). Buscar con el
+     * título completo de un paso largo casi nunca devuelve un pictograma
+     * ajustado; con la etiqueta corta, sí.
+     */
+    termFor?: (task: PictogramTarget) => string | undefined;
+}
+
+export async function autoAssignPictogramsToTasks(tasks: PictogramTarget[], options?: AutoAssignOptions): Promise<void> {
     // Modify tasks in place or return new array?
     // Since we usually pass a state object that will be cloned, let's just process it.
 
@@ -119,8 +135,9 @@ export async function autoAssignPictogramsToTasks(tasks: { title: string, pictog
             continue;
         }
 
-        const sequenceTerms = extractSequenceTerms(task.title);
-        const searchTerms = sequenceTerms.length > 1 ? sequenceTerms : [task.title];
+        const baseTerm = options?.termFor?.(task)?.trim() || task.title;
+        const sequenceTerms = extractSequenceTerms(baseTerm);
+        const searchTerms = sequenceTerms.length > 1 ? sequenceTerms : [baseTerm];
         const matches: Pictogram[] = [];
         const seen = new Set<number>();
 

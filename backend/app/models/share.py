@@ -23,4 +23,3 @@ class BoardShare(TimestampMixin, Base):
     max_uses: Mapped[int | None] = mapped_column(Integer)
     use_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     allow_anonymous: Mapped[bool] = mapped_column(default=True, nullable=False)
-

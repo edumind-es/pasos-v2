@@ -69,7 +69,7 @@ export function TaskCard({
     compact = true,
 }: Props) {
     const visualMode = useStore((state) => state.visualMode);
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
         id: task.id,
         data: { type: 'Task', task },
         disabled: selectionMode || readOnly,
@@ -109,13 +109,18 @@ export function TaskCard({
 
     return (
         <div
-            ref={setNodeRef}
+            // La tarjeta es a la vez nodo arrastrable y activador: así Enter/Espacio
+            // sobre los botones internos («Abrir», «Duplicar»…) no inician un arrastre.
+            ref={(node) => { setNodeRef(node); setActivatorNodeRef(node); }}
             style={{
                 ...style,
                 ...(task.color ? { borderLeft: `4px solid ${task.color}` } : {}),
             }}
             {...attributes}
             {...listeners}
+            // dnd-kit pone role="button"; con botones dentro sería un control anidado (WCAG 4.1.2).
+            // Como grupo enfocable conserva las instrucciones de arrastre (aria-describedby).
+            role="group"
             className={`bg-lme-surface rounded-lg border shadow-sm hover:border-sky group/task transition-all cursor-pointer relative touch-none
                 ${isSelected ? 'border-mint/60 ring-2 ring-mint/40' : 'border-lme-border'}
                 ${compact ? 'p-2.5' : 'p-3'}`}

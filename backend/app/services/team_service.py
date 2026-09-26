@@ -5,8 +5,11 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sqlalchemy import delete as sql_delete
-from app.api.v1.dtos import TeamMemberRoleUpdateRequest, TeamMembershipCreateRequest, TeamMembershipResponse
+from app.api.v1.dtos import (
+    TeamMemberRoleUpdateRequest,
+    TeamMembershipCreateRequest,
+    TeamMembershipResponse,
+)
 from app.core.errors import ApiError
 from app.models.organization_membership import OrganizationMembership
 from app.models.team import Team
@@ -22,7 +25,9 @@ def _get_team(db: Session, team_id: str) -> Team:
     return team
 
 
-def _get_org_membership(db: Session, organization_id: str, user_id: str) -> OrganizationMembership | None:
+def _get_org_membership(
+    db: Session, organization_id: str, user_id: str
+) -> OrganizationMembership | None:
     return db.scalar(
         select(OrganizationMembership).where(
             OrganizationMembership.organization_id == organization_id,
@@ -66,7 +71,9 @@ def _membership_response(membership: TeamMembership, user: User) -> TeamMembersh
     )
 
 
-def list_team_members(db: Session, team_id: str, current_user: User) -> list[TeamMembershipResponse]:
+def list_team_members(
+    db: Session, team_id: str, current_user: User
+) -> list[TeamMembershipResponse]:
     team = _get_team(db, team_id)
     _require_team_manager(db, team, current_user)
     rows = db.execute(
@@ -91,7 +98,9 @@ def add_team_member(
         1 for value in (payload.user_id, payload.user_email, payload.user_code) if value
     )
     if provided_targets != 1:
-        raise ApiError(400, "invalid_member_target", "Provide either user_id, user_email or user_code")
+        raise ApiError(
+            400, "invalid_member_target", "Provide either user_id, user_email or user_code"
+        )
 
     target_user: User | None
     if payload.user_id:
@@ -186,7 +195,10 @@ def remove_team_member(
 
 
 def archive_team(db: Session, organization_id: str, team_id: str, current_user: User) -> None:
-    """Borrado seguro del equipo: lo archiva (recuperable). Permiso: owner del equipo o admin/leadership de la org."""
+    """Borrado seguro del equipo: lo archiva y es recuperable.
+
+    Permiso: propietario del equipo, o admin/leadership de la organización.
+    """
     team = _get_team(db, team_id)
     if team.organization_id != organization_id:
         raise ApiError(404, "team_not_found", "Team not found")

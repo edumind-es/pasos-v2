@@ -2,7 +2,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.api.v1.dtos import TeamMemberRoleUpdateRequest, TeamMembershipCreateRequest, TeamMembershipResponse
+from app.api.v1.dtos import (
+    TeamMemberRoleUpdateRequest,
+    TeamMembershipCreateRequest,
+    TeamMembershipResponse,
+)
 from app.core.deps import DbSession, get_current_user
 from app.models.user import User
 from app.services.team_service import (
