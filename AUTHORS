@@ -1,21 +1,21 @@
-Pasos v2 - Step Tracking PWA
-=============================
+Pasos — tableros de sesiones y rutinas con pictogramas (EDUmind)
+=================================================================
 
-AUTORES PRINCIPALES:
+AUTOR Y ÚNICO TITULAR:
 
 Luis Vilela Acuña <contacto@edumind.es>
-  - Concepción original y arquitectura
-  - Desarrollo principal con metodología Vibe Coding
-  - Diseño y UX
+  - Concepción original, arquitectura y diseño pedagógico
+  - Desarrollo con vibe coding asistido por IA (ver «Hecho con IA» en README.md)
+  - Diseño visual y UX
 
 CONTRIBUIDORES:
 
-[Lista de contribuidores]
+Todavía ninguno. Las contribuciones son bienvenidas: ver CONTRIBUTING.md.
 
 ---
 
 NOTA LEGAL:
-Todos los contribuidores aceptan que sus aportaciones se licencien
-bajo GNU GPL v3.0 y que EDUmind mantenga la gestión del proyecto.
-El código es libre; la marca EDUmind® es propiedad de Luis Vilela Acuña
-y no se cede con el código (ver TRADEMARKS.md).
+Quien contribuye acepta que su aportación se publique bajo la misma licencia doble del
+proyecto, AGPL-3.0-or-later OR EUPL-1.2 (ver LICENSE), y que Luis Vilela Acuña mantenga
+la gestión del proyecto. El código es libre; la marca EDUmind® es propiedad de Luis
+Vilela Acuña y no se cede con el código (ver TRADEMARKS.md).
