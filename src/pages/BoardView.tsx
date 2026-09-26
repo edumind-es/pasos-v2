@@ -523,6 +523,34 @@ function BoardView() {
         setTargetColumnId(null);
     };
 
+    // Instrucciones y avisos del arrastre para lectores de pantalla, en español
+    // (por defecto dnd-kit los emite en inglés). Se nombra la tarea, no su id.
+    const nombreTarea = (id: string | number) => tasks.find(t => t.id === id)?.title ?? 'tarea';
+    const nombreDestino = (id: string | number | undefined) => {
+        if (id === undefined) return null;
+        const columna = columns.find(c => c.id === id);
+        if (columna) return `la columna «${columna.title}»`;
+        const tarea = tasks.find(t => t.id === id);
+        return tarea ? `la columna «${columns.find(c => c.id === tarea.columnId)?.title ?? ''}»` : null;
+    };
+    const dndAccesibilidad = {
+        screenReaderInstructions: {
+            draggable: 'Para mover la tarea pulsa Espacio o Enter, usa las flechas para llevarla a otra columna y vuelve a pulsar Espacio o Enter para soltarla. Escape cancela.',
+        },
+        announcements: {
+            onDragStart: ({ active }: { active: { id: string | number } }) => `Has levantado la tarea «${nombreTarea(active.id)}».`,
+            onDragOver: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) => {
+                const destino = nombreDestino(over?.id);
+                return destino ? `La tarea «${nombreTarea(active.id)}» está sobre ${destino}.` : `La tarea «${nombreTarea(active.id)}» no está sobre ninguna columna.`;
+            },
+            onDragEnd: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) => {
+                const destino = nombreDestino(over?.id);
+                return destino ? `Has soltado la tarea «${nombreTarea(active.id)}» en ${destino}.` : `Has soltado la tarea «${nombreTarea(active.id)}».`;
+            },
+            onDragCancel: ({ active }: { active: { id: string | number } }) => `Movimiento de la tarea «${nombreTarea(active.id)}» cancelado.`,
+        },
+    };
+
     const dropAnimation: DropAnimation = {
         sideEffects: defaultDropAnimationSideEffects({
             styles: {
@@ -574,6 +602,7 @@ function BoardView() {
                         <div className="flex items-center bg-black/20 border border-line rounded-lg p-0.5 shrink-0">
                             <Link
                                 to="/aula"
+                                aria-label="Aula"
                                 className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-lg transition-colors ${isClassroomWorkspace ? 'bg-sky/20 text-sky' : 'text-sub hover:text-ink'}`}
                             >
                                 <GraduationCap className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -582,6 +611,7 @@ function BoardView() {
                             {isProUser && (
                                 <Link
                                     to="/organizacion"
+                                    aria-label="Claustro"
                                     className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-bold rounded-lg transition-colors ${!isClassroomWorkspace ? 'bg-mint/20 text-mint' : 'text-sub hover:text-ink'}`}
                                 >
                                     <Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -641,6 +671,7 @@ function BoardView() {
                             <Link
                                 to={getWorkspaceSubPath('classroom', 'present')}
                                 className="flex items-center gap-1.5 px-2 sm:px-4 py-2 rounded-lg bg-ink text-lme-background hover:bg-fisico transition-colors text-sm font-bold uppercase tracking-wide"
+                                aria-label="Presentar"
                             >
                                 <Play className="w-4 h-4 fill-current" />
                                 <span className="hidden sm:inline">Presentar</span>
@@ -841,6 +872,7 @@ function BoardView() {
                                 <div className={`${compactEmbed ? 'mt-3' : 'mt-4'} overflow-x-auto pb-2`}>
                                     <DndContext
                                         sensors={sensors}
+                                        accessibility={dndAccesibilidad}
                                         onDragStart={onDragStart}
                                         onDragOver={onDragOver}
                                         onDragEnd={onDragEnd}

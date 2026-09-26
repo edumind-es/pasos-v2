@@ -203,17 +203,17 @@ export default function EDUmindFooter({
                 }}>Contacto</a>
                 <span style={{ margin: '0 0.5rem' }}>·</span>
                 <a href="https://donar.edumind.es" target="_blank" rel="noopener noreferrer" style={{
-                    color: '#10b981',
+                    color: '#047857', /* colores de marca oscurecidos: ≥4,5:1 sobre el fondo del pie */
                     textDecoration: 'none',
                     fontWeight: '500'
                 }}>💚 Apoyar</a>
 
                 <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                    <a href="https://t.me/EDUmind_es" target="_blank" rel="noopener noreferrer" style={{ color: '#0088cc', textDecoration: 'none' }}>📢 Telegram</a>
-                    <a href="https://instagram.com/edumind_es" target="_blank" rel="noopener noreferrer" style={{ color: '#E1306C', textDecoration: 'none' }}>📸 Instagram</a>
+                    <a href="https://t.me/EDUmind_es" target="_blank" rel="noopener noreferrer" style={{ color: '#0c5f8a', textDecoration: 'none' }}>📢 Telegram</a>
+                    <a href="https://instagram.com/edumind_es" target="_blank" rel="noopener noreferrer" style={{ color: '#a01d50', textDecoration: 'none' }}>📸 Instagram</a>
                     <a href="https://x.com/edumind_es" target="_blank" rel="noopener noreferrer" style={{ color: '#000000', textDecoration: 'none' }}>𝕏 Twitter</a>
-                    <a href="https://mastodon.social/@EDUmind" target="_blank" rel="noopener noreferrer" style={{ color: '#6364FF', textDecoration: 'none' }}>🐘 Mastodon</a>
-                    <a href="https://blog.edumind.es" target="_blank" rel="noopener noreferrer" style={{ color: '#10b981', textDecoration: 'none' }}>📝 Blog</a>
+                    <a href="https://mastodon.social/@EDUmind" target="_blank" rel="noopener noreferrer" style={{ color: '#4547c9', textDecoration: 'none' }}>🐘 Mastodon</a>
+                    <a href="https://blog.edumind.es" target="_blank" rel="noopener noreferrer" style={{ color: '#047857', textDecoration: 'none' }}>📝 Blog</a>
                 </div>
             </div>
 

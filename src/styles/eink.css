@@ -983,6 +983,12 @@ html.eink-dark textarea::placeholder {
     transition-duration: 0.1s !important;
 }
 
+/* El anillo de foco debe aparecer al instante: con la transición anterior el
+   outline tardaba 0,1 s y los lectores automáticos (axe) lo medían a 0 px. */
+.eink :focus-visible {
+    transition-duration: 0s !important;
+}
+
 /* Excepción para dragndrop */
 .eink [style*="transform"] {
     transition-duration: 0s !important;

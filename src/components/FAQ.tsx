@@ -158,6 +158,7 @@ export function FAQ() {
                     <button
                         onClick={() => setIsOpen(false)}
                         className="w-10 h-10 rounded-xl hover:bg-white/10 flex items-center justify-center text-lme-text-secondary hover:text-white transition-colors"
+                        aria-label="Cerrar ayuda"
                     >
                         <ChevronDown className="w-6 h-6" />
                     </button>
@@ -341,7 +342,7 @@ export function FAQ() {
 
                 {/* Footer */}
                 <div className="p-4 border-t border-lme-border bg-black/20">
-                    <p className="text-xs text-center text-lme-text-secondary">
+                    <p className="text-xs text-center text-ink">
                         ¿Dudas? Escríbenos a{' '}
                         <a href="mailto:contacto@edumind.es" className="text-lme-primary hover:underline font-bold">
                             contacto@edumind.es

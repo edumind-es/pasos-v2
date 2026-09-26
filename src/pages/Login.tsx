@@ -428,10 +428,11 @@ export default function Login() {
             </main>
 
             {/* ── Footer ── */}
-            <footer className="flex items-center justify-center gap-2.5 py-4 px-8 opacity-50">
+            {/* div, no footer: el pie global ya es el contentinfo de la página */}
+            <div className="flex items-center justify-center gap-2.5 py-4 px-8">
                 <img src="/icons/edumind_logo.png" alt="EDUmind" className="w-4 h-4 rounded" />
                 <span className="text-[11px] text-sub">una app de <strong className="text-ink">EDUmind</strong> · Luis Vilela Acuña</span>
-            </footer>
+            </div>
 
             {/* Bloque oculto — preserva variables de estado no usadas en el nuevo layout */}
             <div className="hidden">

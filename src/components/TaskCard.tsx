@@ -118,6 +118,9 @@ export function TaskCard({
             }}
             {...attributes}
             {...listeners}
+            // dnd-kit pone role="button"; con botones dentro sería un control anidado (WCAG 4.1.2).
+            // Como grupo enfocable conserva las instrucciones de arrastre (aria-describedby).
+            role="group"
             className={`bg-lme-surface rounded-lg border shadow-sm hover:border-sky group/task transition-all cursor-pointer relative touch-none
                 ${isSelected ? 'border-mint/60 ring-2 ring-mint/40' : 'border-lme-border'}
                 ${compact ? 'p-2.5' : 'p-3'}`}
